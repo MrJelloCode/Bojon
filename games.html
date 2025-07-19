@@ -140,9 +140,10 @@
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
           recordedBlob = new Blob(chunks, { type: 'video/webm' });
-          // Upload the blob to /upload-and-analyze and log the response
+          // Always get username from localStorage to ensure it's set
+          const actualUsername = localStorage.getItem("userId") || username || "anon";
           try {
-            const response = await fetch(`/upload-and-analyze?username=${username}`, {
+            const response = await fetch(`/upload-and-analyze?username=${encodeURIComponent(actualUsername)}`, {
               method: 'POST',
               headers: { 'Content-Type': 'video/webm' },
               body: recordedBlob
