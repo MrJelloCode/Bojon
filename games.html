@@ -138,7 +138,7 @@
           recordedBlob = new Blob(chunks, { type: 'video/webm' });
           // Upload the blob to /upload-and-analyze and log the response
           try {
-            const response = await fetch('/upload-and-analyze', {
+            const response = await fetch(`/upload-and-analyze?${username}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'video/webm'

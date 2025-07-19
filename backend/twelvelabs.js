@@ -8,9 +8,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 const client = new TwelveLabs({ apiKey: process.env.TL_API_KEY });
 
-async function main() {
+async function main(videoFileName) {
   try {
-    const videoFileName = 'response1.mp4';
+    videoFileName = videoFileName || 'sample-video.mp4'; // Default video file name if not provided
     const videoPath = path.resolve('./videos', videoFileName);
 
     // 1. Check if video file exists
