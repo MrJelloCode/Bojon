@@ -22,11 +22,10 @@
       color: var(--gold);
       display: grid;
       grid-template-columns: 2fr 1fr;
-      grid-template-rows: auto auto 1fr auto;
+      grid-template-rows: auto 3fr auto;
       grid-template-areas:
         "stats welcome"
-        "battle leaderboard"
-        "help leaderboard"
+        "main leaderboard"
         "logout leaderboard";
       gap: 1rem;
       height: 100vh;
@@ -46,42 +45,74 @@
 
     #userStats { grid-area: stats; }
     #welcome { grid-area: welcome; justify-content: flex-end; }
-    #findBattle { grid-area: battle; flex-direction: column; }
-    #help { grid-area: help; flex-direction: column; }
-    #leaderboard { grid-area: leaderboard; flex-direction: column; }
-    #logout { grid-area: logout; }
-
-    button {
+    #main {
+      grid-area: main;
+      display: flex;
+      gap: 1rem;
+      flex-direction: row;
+      height: 100%;
+    }
+    #findBattle, #help {
+      flex: 1;
+      flex-direction: column;
+      display: flex;
+      justify-content: space-between;
+      padding: 1.5rem;
+    }
+    #findBattle button, #logout button {
       background-color: var(--gold);
       color: var(--black);
       font-weight: bold;
-      padding: 0.5em 1em;
+      padding: 1em 2em;
+      font-size: 1.1rem;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: all 0.25s ease-in-out;
     }
-
-    button:hover {
-      transform: scale(1.05);
+    #findBattle button:hover, #logout button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 15px var(--gold);
+    }
+    #leaderboard {
+      grid-area: leaderboard;
+      flex-direction: column;
+      display: flex;
+    }
+    #logout {
+      grid-area: logout;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100px;
     }
   </style>
 </head>
 <body>
   <div id="userStats" class="box">USER STATS</div>
-  <div id="welcome" class="box">Welcome,  <span id="username"> loading...</span>!</div>
-  <div id="findBattle" class="box">
-    <button onclick="startMatchmaking()">Find a battle</button>
-  </div>
-  <div id="help" class="box">
-    <p><strong>HELP</strong><br>Learn about how Bojon prepares you for interviews.</p>
+  <div id="welcome" class="box">Welcome, <span id="username"> loading...</span>!</div>
+  <div id="main">
+    <div id="findBattle" class="box">
+      <div>
+        <h2>🚀 Start Your Interview Duel</h2>
+        <p>Face off against another job-seeker in a live mock interview. Rise through the ranks!</p>
+      </div>
+      <button onclick="startMatchmaking()">🔍 Find a Battle</button>
+    </div>
+    <div id="help" class="box">
+      <div>
+        <h2>📘 How It Works</h2>
+        <p>Answer job interview questions, earn ELO points, and climb the leaderboard. Feedback included!</p>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-light);">Need tips? Check out our guide in the Help section.</p>
+    </div>
   </div>
   <div id="leaderboard" class="box">
-    <h3>TOP 10 LEADERBOARD</h3>
+    <h3>🏆 TOP 10 LEADERBOARD</h3>
     <ul id="topPlayers" style="list-style: none; padding: 0; color: var(--text-light);"></ul>
   </div>
   <div id="logout" class="box">
-    <button id="logoutBtn">Thank you for playing! (Log out)</button>
+    <button id="logoutBtn">🚪 Thank you for playing! (Log out)</button>
   </div>
 
   <script>
@@ -98,7 +129,6 @@
         cacheLocation: 'localstorage'
       });
 
-      // Handle Auth0 login redirect
       const query = window.location.search;
       if (query.includes("code=") && query.includes("state=")) {
         try {
@@ -114,7 +144,7 @@
       if (isAuthenticated) {
         const user = await auth0.getUser();
         document.getElementById('username').textContent =
-  '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
+          '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
 
         fetch('/api/login', {
           method: 'POST',
