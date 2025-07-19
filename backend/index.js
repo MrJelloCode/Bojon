@@ -180,14 +180,14 @@ async function handleRequest(req, res) {
                 const data = JSON.parse(body);
                 const user = data.user;
                 const username = user.nickname || user.name || user.email;
-                const newElo = data.elo; // Only update if provided
+                const newElo = data.elo;
 
+                // Build update doc
                 let updateDoc = { $set: { username: username } };
-                if (newElo !== undefined) {
+                if (newElo !== undefined && newElo !== null) {
                     updateDoc.$set.elo = newElo;
-                } else {
-                    updateDoc.$setOnInsert = { elo: 500 };
                 }
+                updateDoc.$setOnInsert = { elo: 500 }; // Default ELO for new users
 
                 const result = await collection.findOneAndUpdate(
                     { username: username },
@@ -195,7 +195,11 @@ async function handleRequest(req, res) {
                     { upsert: true, returnDocument: "after" }
                 );
 
-                const elo = (result.value && result.value.elo !== undefined) ? result.value.elo : 500;
+                // Always return the user's ELO (default to 500 if missing)
+                const elo = (result.value && result.value.elo !== undefined && result.value.elo !== null)
+                    ? result.value.elo
+                    : 500;
+
                 res.writeHead(200, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ elo: elo }));
             });
