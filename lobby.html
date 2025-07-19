@@ -90,7 +90,7 @@
 </head>
 <body>
   <div id="userStats" class="box">USER STATS</div>
-  <div id="welcome" class="box">Welcome <span id="username">{user}</span>!</div>
+  <div id="welcome" class="box">Welcome <span id="username">...</span>!</div>
   <div id="findBattle" class="box">
     <button onclick="startMatchmaking()">Find a battle</button>
   </div>
@@ -114,21 +114,32 @@
 
     async function logout() {
       const auth0Client = await auth0;
-      auth0Client.logout({ returnTo: window.location.origin });
+      auth0Client.logout({ returnTo: window.location.origin + '/index.html' });
     }
 
     async function configureAuth0() {
       auth0 = await createAuth0Client({
         domain: 'bojon.ca.auth0.com',
         client_id: 'hxZOfc9vWXe0flKNTKaTXXPOJGzwpIj1',
-        cacheLocation: 'localstorage'
+        cacheLocation: 'localstorage',
+        useRefreshTokens: true
       });
+
+      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
+        try {
+          await auth0.handleRedirectCallback();
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {
+          console.error("Error handling redirect callback:", e);
+        }
+      }
 
       const isAuthenticated = await auth0.isAuthenticated();
 
       if (isAuthenticated) {
         const user = await auth0.getUser();
-        document.getElementById('username').textContent = user.nickname || user.name;
+        const firstName = user.given_name || (user.name ? user.name.split(" ")[0] : user.nickname || "User");
+        document.getElementById('username').textContent = firstName;
 
         fetch('/api/login', {
           method: 'POST',
@@ -140,6 +151,7 @@
           .then(res => res.json())
           .then(data => {
             const ul = document.getElementById('topPlayers');
+            ul.innerHTML = '';
             data.forEach((player, i) => {
               const li = document.createElement('li');
               li.textContent = `${i + 1}. ${player.name || player.email || 'Player'} - ${player.elo}`;
