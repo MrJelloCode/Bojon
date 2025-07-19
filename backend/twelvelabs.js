@@ -22,7 +22,7 @@ async function main(videoFileName) {
 
     // 2. Create an index with both Marengo and Pegasus models
     const index = await client.index.create({
-      name: 'interview-clip-index-' + Date.now(),
+      name: 'interview-clip-index',
       models: [
         { name: 'marengo2.7', options: ['visual', 'audio'] },
         { name: 'pegasus1.2', options: ['visual', 'audio'] },
@@ -50,7 +50,7 @@ async function main(videoFileName) {
     console.log(`✅ Video uploaded. Video ID: ${task.videoId}`);
 
     // 4. Run open-ended analysis with your custom prompt
-    const prompt = "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.";
+    const prompt = "You are now a (decently) strict evaluator. I need you to rate the mp4 clip based off 1. Clarity 2.Relevant Language (on topic & logical structured) 3.Pace/Delivery 4.Time Use & 5.Posture and Facial Expressions. Each of these should be rated out of 20, and then you should return to me a single integer between 0-100 based off the performance of the user. You should only return to me a single integer between 0-100 based off the performance of the user. Penalize the user for looking away/ reading off a script. Do not return any other text, just the integer score.";
     const result = await client.analyze(task.videoId, prompt);
 
     // 5. Extract and display score
@@ -105,7 +105,7 @@ export async function getInterviewScore(videoFileName) {
     }
 
     // 4. Run open-ended analysis with your custom prompt
-    const prompt = "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.";
+    const prompt = "You are now a (decently) strict evaluator. I need you to rate the mp4 clip based off 1. Clarity 2.Relevant Language (on topic & logical structured) 3.Pace/Delivery 4.Time Use & 5.Posture and Facial Expressions. Each of these should be rated out of 20, and then you should return to me a single integer between 0-100 based off the performance of the user. You should only return to me a single integer between 0-100 based off the performance of the user. Penalize the user for looking away/ reading off a script. Do not return any other text, just the integer score.";
     const result = await client.analyze(task.videoId, prompt);
 
     // 5. Extract and return score
