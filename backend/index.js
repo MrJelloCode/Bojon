@@ -187,7 +187,9 @@ async function handleRequest(req, res) {
                 if (newElo !== undefined && newElo !== null) {
                     updateDoc.$set.elo = newElo;
                 }
-                updateDoc.$setOnInsert = { elo: 500 }; // Default ELO for new users
+                if (updateDoc.$set.elo === undefined) {
+                    updateDoc.$setOnInsert = { elo: 500 }; // Only set default if not updating elo
+                }
 
                 const result = await collection.findOneAndUpdate(
                     { username: username },
@@ -222,11 +224,10 @@ async function handleRequest(req, res) {
 
             // If someone is already waiting, pair them
             if (waitingUser && waitingRes) {
-                // Save the match
-                currentMatch = {
-                    users: [waitingUser, username],
-                    question: null
-                };
+                // Always store usernames in sorted order for consistency
+                const pair = [waitingUser, username].sort();
+                const matchKey = pair.join(":");
+                matches.set(matchKey, { users: pair, question: null });
 
                 // Respond to the waiting user
                 waitingRes.writeHead(200, { "Content-Type": "application/json" });
@@ -261,33 +262,65 @@ async function handleRequest(req, res) {
         // GET /get-interview-question?username=...
         if (req.method === "GET" && pathname === "/get-interview-question") {
             const username = parsedUrl.query.username;
-            if (
-                !username ||
-                !currentMatch ||
-                !currentMatch.users.includes(username)
-            ) {
+            if (!username) {
+                res.writeHead(403, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Missing username" }));
+                return;
+            }
+
+            // Find the match this user is in
+            let matchEntry;
+            for (const [key, match] of matches.entries()) {
+                if (match.users.includes(username)) {
+                    matchEntry = match;
+                    break;
+                }
+            }
+
+            if (!matchEntry) {
                 res.writeHead(403, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: "Not authorized or no match in progress" }));
                 return;
             }
 
             // If question already generated, serve it
-            if (currentMatch.question) {
+            if (matchEntry.question) {
                 res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ question: currentMatch.question }));
+                res.end(JSON.stringify({ question: matchEntry.question }));
                 return;
             }
 
-            // Otherwise, generate and cache the question
+            // If question is being generated, queue this response
+            if (matchEntry.generating) {
+                matchEntry.pending = matchEntry.pending || [];
+                matchEntry.pending.push(res);
+                return;
+            }
+
+            // Otherwise, generate and cache the question, and mark as generating
+            matchEntry.generating = true;
+            matchEntry.pending = matchEntry.pending || [];
+            matchEntry.pending.push(res);
+
             const prompt = "Generate a very very short (solvable in a 10 second response) example technical interview question for a software engineering candidate. Make it a theory based question that can be answered only with words, no code. Only generate the question, and no other information about it.";
             try {
                 const question = await getGeminiResponse(prompt);
-                currentMatch.question = question;
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ question }));
+                matchEntry.question = question;
+                matchEntry.generating = false;
+
+                // Respond to all waiting clients
+                for (const pendingRes of matchEntry.pending) {
+                    pendingRes.writeHead(200, { "Content-Type": "application/json" });
+                    pendingRes.end(JSON.stringify({ question }));
+                }
+                matchEntry.pending = [];
             } catch (err) {
-                res.writeHead(500, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Failed to generate question" }));
+                matchEntry.generating = false;
+                for (const pendingRes of matchEntry.pending) {
+                    pendingRes.writeHead(500, { "Content-Type": "application/json" });
+                    pendingRes.end(JSON.stringify({ error: "Failed to generate question" }));
+                }
+                matchEntry.pending = [];
             }
             return;
         }
@@ -303,7 +336,7 @@ async function handleRequest(req, res) {
 
 let waitingUser = null;
 let waitingRes = null;
-let currentMatch = null; // { users: [user1, user2], question: "..." }
+const matches = new Map(); // key: sorted usernames joined, value: { users: [...], question: ... }
 
 const server = http.createServer((req, res) => {
     handleRequest(req, res);
