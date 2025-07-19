@@ -213,6 +213,9 @@
         document.getElementById('username').textContent =
           '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
 
+        // Store userId in localStorage
+        localStorage.setItem("userId", user.username);
+
         // Fetch ELO for the user
         const username = encodeURIComponent(user.nickname || user.name || user.email || 'Guest');
         fetch(`/get-elo?username=${username}`)
