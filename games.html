@@ -87,7 +87,7 @@
         document.getElementById("question").textContent = text;
       } catch (error) {
         console.error("Failed to fetch question from backend:", error);
-        document.getElementById("question").textContent = "[Failed to fetch question]";
+        document.getElementById("question").textContent = "[Error loading question]";
       }
     }
 
