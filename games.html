@@ -110,6 +110,10 @@
         document.getElementById("question").textContent = text;
 
         startBtn.style.display = "none";
+        // Switch to result.html after 20 seconds (when animation ends)
+        setTimeout(() => {
+          window.location.href = "result.html";
+        }, 22000);
         document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
 
         await startWebcamAndRecord(username);
@@ -138,7 +142,7 @@
           recordedBlob = new Blob(chunks, { type: 'video/webm' });
           // Upload the blob to /upload-and-analyze and log the response
           try {
-            const response = await fetch(`/upload-and-analyze?${username}`, {
+            const response = await fetch(`/upload-and-analyze?username=${username}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'video/webm'
