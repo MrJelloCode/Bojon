@@ -204,22 +204,22 @@
           .then(res => res.json())
           .then(data => {
             window.currentElo = data.elo;
-            // Optionally, update the UI with ELO
             document.getElementById('userStats').textContent = `ELO: ${data.elo}`;
+
+            // Only send login after ELO is fetched
+            fetch('/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user, elo: window.currentElo })
+            })
+              .then(res => res.json())
+              .then(data => {
+                document.getElementById("eloValue").textContent = data.elo || 'N/A';
+              });
           })
           .catch(err => {
             console.error('Failed to fetch ELO:', err);
             window.currentElo = null;
-          });
-
-        fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user, elo: newElo }) // newElo should be the updated value
-        })
-          .then(res => res.json())
-          .then(data => {
-            document.getElementById("eloValue").textContent = data.elo || 'N/A';
           });
 
         fetch('/leaderboard')
