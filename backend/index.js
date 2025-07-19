@@ -27,54 +27,37 @@ async function testRibbon() {
 testRibbon();
 //End Ribbon API call
 
-//Twelvelabs API 
-async function testTwelveLabs() {
-  try {
-    const { TwelveLabs } = await import("twelvelabs-js");
+// Twelve Labs index management
+let twelveLabsIndexId = null;
+const TWELVELABS_INDEX_NAME = "interview-clip-index";
 
-    const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
-
-    const index = await client.index.create({
-      name: `index-${uuidv4()}`,
-      models: [
-        { name: "marengo2.7", options: ["visual", "audio"] }
-      ]
-    });
-    console.log(`Created index: id=${index.id} name=${index.name}`);
-
-    const task = await client.task.create({
-      indexId: index.id,
-      url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4" // replace with your video URL
-    });
-    console.log(`Created task: id=${task.id}`);
-
-    await task.waitForDone(5000, (task) => {
-      console.log(`  Status=${task.status}`);
-    });
-
-    if (task.status !== "ready") {
-      throw new Error(`Indexing failed with status ${task.status}`);
-    }
-
-    console.log(`Upload complete. The unique identifier of your video is ${task.videoId}`);
-
-    const searchResults = await client.search.query({
-      indexId: index.id,
-      queryText: "YOUR_QUERY",
-      options: ["visual", "audio"]
-    });
-
-    for (const clip of searchResults.data) {
-      console.log(`video_id=${clip.videoId} score=${clip.score} start=${clip.start} end=${clip.end} confidence=${clip.confidence}`);
-    }
-
-  } catch (err) {
-    console.error("Twelvelabs error:", err);
+async function ensureTwelveLabsIndex() {
+  const { TwelveLabs } = await import("twelvelabs-js");
+  const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
+  // Try to find existing index
+  const indexes = await client.index.list();
+  const found = indexes.data.find(idx => idx.name === TWELVELABS_INDEX_NAME);
+  if (found) {
+    twelveLabsIndexId = found.id;
+    return twelveLabsIndexId;
   }
+  // Create new index if not found
+  const index = await client.index.create({
+    name: TWELVELABS_INDEX_NAME,
+    models: [
+      { name: "marengo2.7", options: ["visual", "audio"] }
+    ]
+  });
+  twelveLabsIndexId = index.id;
+  return twelveLabsIndexId;
 }
 
-// testTwelveLabs();
-//Twelvelabs API  
+// Ensure index is created on server startup
+ensureTwelveLabsIndex().then(id => {
+  console.log("Twelve Labs index ready, id:", id);
+}).catch(err => {
+  console.error("Failed to create/find Twelve Labs index:", err);
+});
 async function getGeminiResponse(prompt) {
     const apiKey = process.env.GEMINI_API_KEY;
     const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + apiKey;
@@ -358,17 +341,15 @@ async function handleRequest(req, res) {
                         const { TwelveLabs } = await import("twelvelabs-js");
                         const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
 
-                        // Create index (or use an existing one)
-                        const index = await client.index.create({
-                            name: `index-${uuidv4()}`,
-                            models: [
-                                { name: "marengo2.7", options: ["visual", "audio"] }
-                            ]
-                        });
+                        // Ensure index exists and get its ID
+                        let indexId = twelveLabsIndexId;
+                        if (!indexId) {
+                          indexId = await ensureTwelveLabsIndex();
+                        }
 
                         // Upload the MP4 file
                         const task = await client.task.create({
-                            indexId: index.id,
+                            indexId,
                             file: fs.createReadStream(mp4Path)
                         });
 
@@ -382,7 +363,7 @@ async function handleRequest(req, res) {
 
                         // Example search prompt
                         const searchResults = await client.search.query({
-                            indexId: index.id,
+                            indexId,
                             queryText: "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.",
                             options: ["visual", "audio"]
                         });
