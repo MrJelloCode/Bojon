@@ -89,6 +89,8 @@
   <div id="timerBar"><div id="timerFill"></div></div>
 
   <script>
+    let hasConfirmed = false;
+
     async function startMatchSequence() {
       const username = localStorage.getItem("userId") || "anon";
       const startBtn = document.getElementById("startBtn");
@@ -105,15 +107,25 @@
           return;
         }
 
-        startBtn.textContent = "Generating Question...";
+        const opponent = matchData.opponent;
+        questionDiv.textContent = `Opponent FOUND: ${opponent}. Waiting for them to be ready...`;
 
-        const response = await fetch(`/get-interview-question?username=${username}`);
-        const data = await response.json();
-        const text = data.question || "[Error loading question]";
-        questionDiv.textContent = text;
-        startBtn.style.display = "none";
-        document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
-        await startWebcamAndRecord();
+        const confirmRes = await fetch(`/confirm-ready?username=${username}`);
+        const confirmData = await confirmRes.json();
+
+        if (confirmData.ready) {
+          startBtn.textContent = "Generating Question...";
+          const response = await fetch(`/get-interview-question?username=${username}`);
+          const data = await response.json();
+          const text = data.question || "[Error loading question]";
+          questionDiv.textContent = text;
+          startBtn.style.display = "none";
+          document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
+          await startWebcamAndRecord();
+        } else {
+          questionDiv.textContent = `Opponent FOUND: ${opponent}. Waiting for them to click start...`;
+        }
+
       } catch (error) {
         console.error("Match or question fetch failed:", error);
         questionDiv.textContent = "[Error loading question]";
