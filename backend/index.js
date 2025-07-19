@@ -341,10 +341,12 @@ async function handleRequest(req, res) {
             req.on("end", async () => {
                 // Convert WebM to MP4 using ffmpeg
                 const { exec } = require("child_process");
-                exec(`ffmpeg -y -i "${webmPath}" -c:v libx264 -preset fast -pix_fmt yuv420p "${mp4Path}"`, async (err, stdout, stderr) => {
+                exec(`ffmpeg -y -i "${webmPath}" -c:v libx264 -c:a aac -preset fast -pix_fmt yuv420p -movflags +faststart "${mp4Path}"`, async (err, stdout, stderr) => {
                     if (err) {
-                        res.writeHead(500, { "Content-Type": "application/json" });
-                        res.end(JSON.stringify({ error: "ffmpeg conversion failed", details: stderr }));
+                        if (!res.headersSent) {
+                            res.writeHead(500, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ error: "ffmpeg conversion failed", details: stderr }));
+                        }
                         return;
                     }
 
@@ -385,15 +387,19 @@ async function handleRequest(req, res) {
                         res.writeHead(200, { "Content-Type": "application/json" });
                         res.end(JSON.stringify({ message: "Video processed and analyzed", searchResults }));
                     } catch (apiErr) {
-                        res.writeHead(500, { "Content-Type": "application/json" });
-                        res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+                        if (!res.headersSent) {
+                            res.writeHead(500, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+                        }
                     }
                 });
             });
 
             req.on("error", (err) => {
-                res.writeHead(500, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: err.message }));
+                if (!res.headersSent) {
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
             });
 
             return;
