@@ -81,6 +81,11 @@
       const username = localStorage.getItem("userId") || "anon";
 
       try {
+        // First try to match
+        const matchRes = await fetch(`/auto-match?username=${username}`);
+        await matchRes.json();
+
+        // Then request question
         const response = await fetch(`/get-interview-question?username=${username}`);
         const data = await response.json();
         const text = data.question || "[Error loading question]";
