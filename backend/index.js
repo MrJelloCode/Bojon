@@ -3,6 +3,7 @@ const { MongoClient } = require("mongodb");
 const url = require("url");
 const fs = require("fs");
 const path = require("path");
+const { v4: uuidv4 } = require('uuid');
 
 require("dotenv").config();
 const fetch = require("node-fetch");
@@ -34,7 +35,7 @@ async function testTwelveLabs() {
     const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
 
     const index = await client.index.create({
-      name: "Test Index",
+      name: `index-${uuidv4()}`,
       models: [
         { name: "marengo2.7", options: ["visual", "audio"] }
       ]
@@ -323,6 +324,78 @@ async function handleRequest(req, res) {
                 }
                 matchEntry.pending = [];
             }
+            return;
+        }
+
+        // POST /upload-and-analyze
+        if (req.method === "POST" && pathname === "/upload-and-analyze") {
+            // Save incoming WebM to disk
+            const webmFilename = `video_${Date.now()}.webm`;
+            const mp4Filename = `video_${Date.now()}.mp4`;
+            const webmPath = path.join(__dirname, "video", webmFilename);
+            const mp4Path = path.join(__dirname, "video", mp4Filename);
+
+            const writeStream = fs.createWriteStream(webmPath);
+            req.pipe(writeStream);
+
+            req.on("end", async () => {
+                // Convert WebM to MP4 using ffmpeg
+                const { exec } = require("child_process");
+                exec(`ffmpeg -y -i "${webmPath}" -c:v libx264 -preset fast -pix_fmt yuv420p "${mp4Path}"`, async (err, stdout, stderr) => {
+                    if (err) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ error: "ffmpeg conversion failed", details: stderr }));
+                        return;
+                    }
+
+                    // Send MP4 to Twelve Labs API
+                    try {
+                        const { TwelveLabs } = await import("twelvelabs-js");
+                        const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
+
+                        // Create index (or use an existing one)
+                        const index = await client.index.create({
+                            name: `index-${uuidv4()}`,
+                            models: [
+                                { name: "marengo2.7", options: ["visual", "audio"] }
+                            ]
+                        });
+
+                        // Upload the MP4 file
+                        const task = await client.task.create({
+                            indexId: index.id,
+                            file: fs.createReadStream(mp4Path)
+                        });
+
+                        await task.waitForDone(5000, (task) => {
+                            console.log(`  Status=${task.status}`);
+                        });
+
+                        if (task.status !== "ready") {
+                            throw new Error(`Indexing failed with status ${task.status}`);
+                        }
+
+                        // Example search prompt
+                        const searchResults = await client.search.query({
+                            indexId: index.id,
+                            queryText: "Explain what's happening in this video?",
+                            options: ["visual", "audio"]
+                        });
+
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ message: "Video processed and analyzed", searchResults }));
+                    } catch (apiErr) {
+                        res.writeHead(500, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+                    }
+                });
+            });
+
+            req.on("error", (err) => {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: err.message }));
+            });
+
             return;
         }
 

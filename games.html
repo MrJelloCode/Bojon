@@ -121,10 +121,13 @@
       }
     }
 
+    let recordedBlob = null;
+
     async function startWebcamAndRecord(username) {
       try {
         const video = document.getElementById("preview");
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Request both video and audio
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         video.srcObject = stream;
 
         const mediaRecorder = new MediaRecorder(stream);
@@ -132,22 +135,21 @@
 
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
-          const blob = new Blob(chunks, { type: 'video/webm' });
-          const formData = new FormData();
-          formData.append('video', blob, `${username}.webm`);
-
+          recordedBlob = new Blob(chunks, { type: 'video/webm' });
+          // Upload the blob to /upload-and-analyze and log the response
           try {
-            const response = await fetch("/upload", {
-              method: "POST",
-              body: formData
+            const response = await fetch('/upload-and-analyze', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'video/webm'
+              },
+              body: recordedBlob
             });
             const result = await response.json();
-            console.log("Upload Response:", result);
+            console.log('Upload and analyze result:', result);
           } catch (err) {
-            console.error("Upload failed:", err);
+            console.error('Failed to upload and analyze video:', err);
           }
-
-          stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorder.start();
