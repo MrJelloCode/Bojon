@@ -38,6 +38,15 @@
       object-fit: contain;
       display: block;
       margin: 0 auto;
+      border: 3px solid var(--accent);
+      border-radius: 12px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0px var(--accent); }
+      50% { box-shadow: 0 0 20px var(--accent); }
+      100% { box-shadow: 0 0 0px var(--accent); }
     }
 
     #timerBar {
@@ -68,29 +77,16 @@
   <div id="timerBar"><div id="timerFill"></div></div>
 
   <script>
-    const elo = parseInt(localStorage.getItem("userElo") || "800");
-
     async function fetchQuestion() {
-      let prompt = "Give me a general interview question.";
-      if (elo < 700) {
-        prompt = "Give me a very easy behavioral interview question.";
-      } else if (elo <= 1000) {
-        prompt = "Give me a moderately difficult system design question.";
-      } else {
-        prompt = "Give me a very hard algorithmic interview question.";
-      }
+      const username = localStorage.getItem("userId") || "anon";
 
       try {
-        const response = await fetch("/api/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, userId: localStorage.getItem("userId") || "anon" })
-        });
+        const response = await fetch(`/get-interview-question?username=${username}`);
         const data = await response.json();
-        const text = data.text || "[Error loading question]";
+        const text = data.question || "[Error loading question]";
         document.getElementById("question").textContent = text;
       } catch (error) {
-        console.error("Gemini proxy fetch error:", error);
+        console.error("Failed to fetch question from backend:", error);
         document.getElementById("question").textContent = "[Failed to fetch question]";
       }
     }
@@ -111,17 +107,14 @@
           formData.append('video', blob, 'response.webm');
 
           try {
-            const response = await fetch("https://api.twelvelabs.io/v1.2/video", {
+            const response = await fetch("/upload", {
               method: "POST",
-              headers: {
-                "x-api-key": "tlk_0DN8VQ23AQMGP92PKQMD1065Q39G"
-              },
               body: formData
             });
             const result = await response.json();
-            console.log("12Labs Upload Response:", result);
+            console.log("Upload Response:", result);
           } catch (err) {
-            console.error("Upload to 12Labs failed:", err);
+            console.error("Upload failed:", err);
           }
 
           stream.getTracks().forEach(track => track.stop());
