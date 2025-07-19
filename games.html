@@ -89,31 +89,44 @@
   <div id="timerBar"><div id="timerFill"></div></div>
 
   <script>
+    let hasConfirmed = false;
+
     async function startMatchSequence() {
-      const username = localStorage.getItem("userId") || "anon";
+      const urlParams = new URLSearchParams(window.location.search);
+      const username = urlParams.get("username") || "anon";
+
       const startBtn = document.getElementById("startBtn");
+      const questionDiv = document.getElementById("question");
       startBtn.disabled = true;
-      startBtn.textContent = "Searching for match...";
+      startBtn.textContent = "Searching for opponent...";
 
       try {
-        // Match opponent
-        const matchRes = await fetch(`/auto-match?username=${username}`);
-        await matchRes.json();
+        
+        questionDiv.textContent = `Opponent FOUND. Waiting for them to click start...`;
 
-        // Get question
-        const response = await fetch(`/get-interview-question?username=${username}`);
-        const data = await response.json();
-        const text = data.question || "[Error loading question]";
-        document.getElementById("question").textContent = text;
 
-        // Start timer animation
-        document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
+        const confirmRes = await fetch(`/confirm-ready?username=${username}`);
+        const confirmData = await confirmRes.json();
 
-        // Start recording
-        await startWebcamAndRecord();
+        if (confirmData.ready) {
+          startBtn.textContent = "Generating Question...";
+
+          const response = await fetch(`/get-interview-question?username=${username}`);
+          const data = await response.json();
+          const text = data.question || "[Error loading question]";
+          questionDiv.textContent = text;
+          startBtn.style.display = "none";
+
+          document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
+          await startWebcamAndRecord();
+        } else {
+          questionDiv.textContent = `Opponent FOUND: ${opponent}. Waiting for them to click start...`;
+          startBtn.textContent = "Waiting for opponent...";
+        }
+
       } catch (error) {
         console.error("Match or question fetch failed:", error);
-        document.getElementById("question").textContent = "[Error loading question]";
+        questionDiv.textContent = "[Error loading question]";
         startBtn.disabled = false;
         startBtn.textContent = "Start Match";
       }
@@ -149,7 +162,6 @@
         };
 
         mediaRecorder.start();
-
         setTimeout(() => {
           mediaRecorder.stop();
         }, 20000);
