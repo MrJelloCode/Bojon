@@ -144,9 +144,7 @@
           try {
             const response = await fetch(`/upload-and-analyze?username=${username}`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'video/webm'
-              },
+              headers: { 'Content-Type': 'video/webm' },
               body: recordedBlob
             });
             const result = await response.json();
