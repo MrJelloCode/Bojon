@@ -1,7 +1,7 @@
 const http = require("http");
 const { MongoClient } = require("mongodb");
 
-const uri = "mongodb://localhost:27017";
+const uri = "mongodb+srv://sulaimanqazi14:erIe7KEzuD6IUKwj@cluster0.leduri1.mongodb.net/?retryWrites=true&w=majority"; // Replace with your Atlas URI
 const client = new MongoClient(uri);
 
 async function handleRequest(req, res) {
@@ -10,10 +10,9 @@ async function handleRequest(req, res) {
         const db = client.db("bojonDB");
         const collection = db.collection("testCollection");
 
-        // Example: Insert a document
-        await collection.insertOne({ message: "Hello from server!" });
+        await collection.insertOne({ message: "Hello from Atlas!" });
 
-        res.write("Inserted document into MongoDB");
+        res.write("Inserted document into MongoDB Atlas");
         res.end();
     } catch (err) {
         res.write("Error: " + err.message);
@@ -28,3 +27,5 @@ const server = http.createServer((req, res) => {
 server.listen(8080, () => {
     console.log("server running successfully");
 });
+
+
