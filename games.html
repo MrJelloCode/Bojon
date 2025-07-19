@@ -92,23 +92,18 @@
     let hasConfirmed = false;
 
     async function startMatchSequence() {
-      const username = localStorage.getItem("userId") || "anon";
+      const urlParams = new URLSearchParams(window.location.search);
+      const username = urlParams.get("username") || "anon";
+
       const startBtn = document.getElementById("startBtn");
       const questionDiv = document.getElementById("question");
       startBtn.disabled = true;
       startBtn.textContent = "Searching for opponent...";
 
       try {
-        const matchRes = await fetch(`/auto-match?username=${username}`);
-        const matchData = await matchRes.json();
+        
+        questionDiv.textContent = `Opponent FOUND. Waiting for them to click start...`;
 
-        if (!matchData.opponent) {
-          questionDiv.textContent = "Waiting for opponent...";
-          return;
-        }
-
-        const opponent = matchData.opponent;
-        questionDiv.textContent = `Opponent FOUND: ${opponent}. Waiting for them to click start...`;
 
         const confirmRes = await fetch(`/confirm-ready?username=${username}`);
         const confirmData = await confirmRes.json();

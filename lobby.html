@@ -178,7 +178,7 @@
         const data = await response.json();
 
         if (data.opponent) {
-          window.location.href = "https://humble-marmoset-natural.ngrok-free.app/games.html";
+          window.location.href = `https://humble-marmoset-natural.ngrok-free.app/games.html?username=${encodeURIComponent(username)}`;
         } else {
           alert('No match found. Please try again later.');
         }
