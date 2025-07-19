@@ -213,6 +213,12 @@ async function handleRequest(req, res) {
 
             // If someone is already waiting, pair them
             if (waitingUser && waitingRes) {
+                // Save the match
+                currentMatch = {
+                    users: [waitingUser, username],
+                    question: null
+                };
+
                 // Respond to the waiting user
                 waitingRes.writeHead(200, { "Content-Type": "application/json" });
                 waitingRes.end(JSON.stringify({ opponent: username }));
@@ -243,6 +249,40 @@ async function handleRequest(req, res) {
             return;
         }
 
+        // GET /get-interview-question?username=...
+        if (req.method === "GET" && pathname === "/get-interview-question") {
+            const username = parsedUrl.query.username;
+            if (
+                !username ||
+                !currentMatch ||
+                !currentMatch.users.includes(username)
+            ) {
+                res.writeHead(403, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Not authorized or no match in progress" }));
+                return;
+            }
+
+            // If question already generated, serve it
+            if (currentMatch.question) {
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ question: currentMatch.question }));
+                return;
+            }
+
+            // Otherwise, generate and cache the question
+            const prompt = "Generate a very very short (solvable in a 10 second response) example technical interview question for a software engineering candidate. Make it a theory based question that can be answered only with words, no code. Only generate the question, and no other information about it.";
+            try {
+                const question = await getGeminiResponse(prompt);
+                currentMatch.question = question;
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ question }));
+            } catch (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Failed to generate question" }));
+            }
+            return;
+        }
+
         // Default response for other routes
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Not found" }));
@@ -254,6 +294,7 @@ async function handleRequest(req, res) {
 
 let waitingUser = null;
 let waitingRes = null;
+let currentMatch = null; // { users: [user1, user2], question: "..." }
 
 const server = http.createServer((req, res) => {
     handleRequest(req, res);
