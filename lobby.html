@@ -178,7 +178,6 @@
         const data = await response.json();
 
         if (data.opponent) {
-          alert(`Match found! Opponent: ${data.opponent}`);
           window.location.href = "https://humble-marmoset-natural.ngrok-free.app/games.html";
         } else {
           alert('No match found. Please try again later.');
