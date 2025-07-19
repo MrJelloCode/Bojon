@@ -23,22 +23,32 @@
       color: var(--gold);
     }
 
-    .background-animation {
+    .background-grid {
       position: absolute;
       top: 0; left: 0;
       width: 100vw; height: 100vh;
-      background: radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.05), transparent 40%),
-                  radial-gradient(circle at 80% 70%, rgba(255, 215, 0, 0.03), transparent 50%);
-      background-size: cover;
+      overflow: hidden;
       z-index: 0;
-      pointer-events: none;
-      animation: shimmer 10s infinite linear;
     }
 
-    @keyframes shimmer {
-      0% { background-position: 0% 0%; }
-      50% { background-position: 100% 100%; }
-      100% { background-position: 0% 0%; }
+    .tile {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background-color: rgba(212, 175, 55, 0.05);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: rgba(212, 175, 55, 0.3);
+      animation: floatTile 30s linear infinite;
+    }
+
+    @keyframes floatTile {
+      from { transform: translateY(100vh) rotate(0deg); }
+      to   { transform: translateY(-120vh) rotate(360deg); }
     }
 
     .container {
@@ -108,7 +118,7 @@
   </style>
 </head>
 <body>
-  <div class="background-animation"></div>
+  <div class="background-grid" id="tileGrid"></div>
 
   <div class="container">
     <img src="logo.png" alt="Bojon Logo" class="logo" />
@@ -121,6 +131,7 @@
   <div class="footer">Built for Hack The Six • Powered by Bojon</div>
 
   <script>
+    // Auth0 config
     let auth0 = null;
     const config = {
       domain: "bojon.ca.auth0.com",
@@ -137,6 +148,19 @@
       document.getElementById("loginBtn").addEventListener("click", () => {
         auth0.loginWithRedirect();
       });
+
+      const icons = ['📄','💼'];
+      const grid = document.getElementById("tileGrid");
+
+      for (let i = 0; i < 40; i++) {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.style.left = Math.random() * 100 + "vw";
+        tile.style.top = Math.random() * 120 + "vh";
+        tile.style.animationDuration = (20 + Math.random() * 20) + "s";
+        tile.innerText = icons[Math.floor(Math.random() * icons.length)];
+        grid.appendChild(tile);
+      }
     };
   </script>
 </body>
