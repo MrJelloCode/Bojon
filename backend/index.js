@@ -73,7 +73,7 @@ async function testTwelveLabs() {
   }
 }
 
-testTwelveLabs();
+// testTwelveLabs();
 //Twelvelabs API  
 async function getGeminiResponse(prompt) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -387,11 +387,15 @@ async function handleRequest(req, res) {
                             options: ["visual", "audio"]
                         });
 
-                        const { getInterviewScore } = await import('./twelvelabs.js');
-                        const score = await getInterviewScore(mp4Path); // mp4Path is your converted video path
-
-                        res.writeHead(200, { "Content-Type": "application/json" });
-                        res.end(JSON.stringify({ message: "Video processed and analyzed", searchResults, score }));
+                        try {
+                          const { getInterviewScore } = await import('./twelvelabs.js');
+                          const score = await getInterviewScore(mp4Path);
+                          res.writeHead(200, { "Content-Type": "application/json" });
+                          res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
+                        } catch (apiErr) {
+                          res.writeHead(500, { "Content-Type": "application/json" });
+                          res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+                        }
                     } catch (apiErr) {
                         if (!res.headersSent) {
                             res.writeHead(500, { "Content-Type": "application/json" });
