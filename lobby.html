@@ -200,7 +200,7 @@
 
         // Fetch ELO for the user
         const username = encodeURIComponent(user.nickname || user.name || user.email || 'Guest');
-        fetch(`http://127.0.0.1:8080/get-elo?username=${username}`)
+        fetch(`http://localhost:8080/get-elo?username=${username}`)
           .then(res => res.json())
           .then(data => {
             window.currentElo = data.elo;
@@ -215,7 +215,7 @@
         fetch('/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user })
+          body: JSON.stringify({ user, elo: newElo }) // newElo should be the updated value
         })
           .then(res => res.json())
           .then(data => {

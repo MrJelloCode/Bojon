@@ -31,6 +31,18 @@ async function getGeminiResponse(prompt) {
 }
 
 async function handleRequest(req, res) {
+    // Add CORS headers for all responses
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Handle preflight OPTIONS request
+    if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
     try {
         // Serve static files from parent folder (Bojon)
         const staticFolder = path.resolve(__dirname, "..");
@@ -103,11 +115,18 @@ async function handleRequest(req, res) {
                 const data = JSON.parse(body);
                 const user = data.user;
                 const username = user.nickname || user.name || user.email;
+                const newElo = data.elo; // Only update if provided
 
-                // Upsert user: create if not exists, update if exists
+                let updateDoc = { $set: { username: username } };
+                if (newElo !== undefined) {
+                    updateDoc.$set.elo = newElo;
+                } else {
+                    updateDoc.$setOnInsert = { elo: 500 };
+                }
+
                 const result = await collection.findOneAndUpdate(
                     { username: username },
-                    { $setOnInsert: { elo: 500 }, $set: { username: username } },
+                    updateDoc,
                     { upsert: true, returnDocument: "after" }
                 );
 
