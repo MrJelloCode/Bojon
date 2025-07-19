@@ -95,7 +95,13 @@
 
   <script>
     async function startMatchSequence() {
+      // Always get username from localStorage, fallback to "anon"
       const username = localStorage.getItem("userId") || "anon";
+      if (!username || username === "anon") {
+        alert("Username not set. Please log in again.");
+        window.location.href = "lobby.html";
+        return;
+      }
       const startBtn = document.getElementById("startBtn");
       startBtn.disabled = true;
       startBtn.textContent = "Generating Question...";

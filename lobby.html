@@ -210,14 +210,14 @@
 
       if (isAuthenticated) {
         const user = await auth0.getUser();
-        document.getElementById('username').textContent =
-          '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
+        const actualUsername = user.nickname || user.name || user.email || 'Guest';
+        document.getElementById('username').textContent = '\u00A0' + actualUsername;
 
-        // Store userId in localStorage
-        localStorage.setItem("userId", user.username);
+        // Store userId in localStorage (always use actualUsername)
+        localStorage.setItem("userId", actualUsername);
 
         // Fetch ELO for the user
-        const username = encodeURIComponent(user.nickname || user.name || user.email || 'Guest');
+        const username = encodeURIComponent(actualUsername);
         fetch(`/get-elo?username=${username}`)
           .then(res => res.json())
           .then(data => {
