@@ -35,19 +35,35 @@ async function ensureTwelveLabsIndex() {
   const { TwelveLabs } = await import("twelvelabs-js");
   const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
   // Try to find existing index
-  const indexes = await client.index.list();
+  let indexes;
+  try {
+    indexes = await client.index.list();
+  } catch (err) {
+    console.error("Error calling Twelve Labs index.list():", err);
+    throw new Error("Failed to list indexes from Twelve Labs API");
+  }
+  if (!indexes || !Array.isArray(indexes.data)) {
+    console.error("Unexpected response from Twelve Labs index.list():", indexes);
+    throw new Error("Twelve Labs API did not return a valid index list");
+  }
   const found = indexes.data.find(idx => idx.name === TWELVELABS_INDEX_NAME);
   if (found) {
     twelveLabsIndexId = found.id;
     return twelveLabsIndexId;
   }
   // Create new index if not found
-  const index = await client.index.create({
-    name: TWELVELABS_INDEX_NAME,
-    models: [
-      { name: "marengo2.7", options: ["visual", "audio"] }
-    ]
-  });
+  let index;
+  try {
+    index = await client.index.create({
+      name: TWELVELABS_INDEX_NAME,
+      models: [
+        { name: "marengo2.7", options: ["visual", "audio"] }
+      ]
+    });
+  } catch (err) {
+    console.error("Error creating Twelve Labs index:", err);
+    throw new Error("Failed to create index in Twelve Labs API");
+  }
   twelveLabsIndexId = index.id;
   return twelveLabsIndexId;
 }
