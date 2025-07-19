@@ -1,8 +1,31 @@
 const http = require("http");
 const { MongoClient } = require("mongodb");
 
-const uri = "mongodb+srv://sulaimanqazi14:erIe7KEzuD6IUKwj@cluster0.leduri1.mongodb.net/?retryWrites=true&w=majority"; // Replace with your Atlas URI
+require("dotenv").config();
+const fetch = require("node-fetch");
+
+
+const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
+
+async function getGeminiResponse(prompt) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + apiKey;
+
+    const body = {
+        contents: [{ parts: [{ text: prompt }] }]
+    };
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    console.log("Gemini raw response:", data); // Add this line
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+}
 
 async function handleRequest(req, res) {
     try {
@@ -10,9 +33,10 @@ async function handleRequest(req, res) {
         const db = client.db("bojonDB");
         const collection = db.collection("testCollection");
 
-        await collection.insertOne({ message: "Hello from Atlas!" });
+        const geminiText = await getGeminiResponse("Hello Gemini, say something cool!");
+        await collection.insertOne({ message: geminiText });
 
-        res.write("Inserted document into MongoDB Atlas");
+        res.write("Gemini response inserted into MongoDB Atlas: " + geminiText);
         res.end();
     } catch (err) {
         res.write("Error: " + err.message);
