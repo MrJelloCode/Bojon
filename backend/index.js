@@ -377,7 +377,7 @@ async function handleRequest(req, res) {
                         });
 
                         if (task.status !== "ready") {
-                            throw new Error(`Indexing failed with status ${task.status}`);
+                          throw new Error(`Indexing failed with status ${task.status}`);
                         }
 
                         // Example search prompt
@@ -387,8 +387,11 @@ async function handleRequest(req, res) {
                             options: ["visual", "audio"]
                         });
 
+                        const { getInterviewScore } = await import('./twelvelabs.js');
+                        const score = await getInterviewScore(mp4Path); // mp4Path is your converted video path
+
                         res.writeHead(200, { "Content-Type": "application/json" });
-                        res.end(JSON.stringify({ message: "Video processed and analyzed", searchResults }));
+                        res.end(JSON.stringify({ message: "Video processed and analyzed", searchResults, score }));
                     } catch (apiErr) {
                         if (!res.headersSent) {
                             res.writeHead(500, { "Content-Type": "application/json" });
@@ -428,5 +431,3 @@ const server = http.createServer((req, res) => {
 server.listen(8080, () => {
     console.log("server running successfully");
 });
-
-

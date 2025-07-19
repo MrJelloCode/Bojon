@@ -68,3 +68,56 @@ async function main(videoFileName) {
 }
 
 main();
+
+export async function getInterviewScore(videoFileName) {
+  try {
+    videoFileName = videoFileName || 'sample-video.mp4'; // Default video file name if not provided
+    const videoPath = path.resolve('./videos', videoFileName);
+
+    // 1. Check if video file exists
+    try {
+      await fs.access(videoPath);
+    } catch {
+      throw new Error(`Video file '${videoFileName}' not found in ./videos`);
+    }
+
+    // 2. Create an index with both Marengo and Pegasus models
+    const index = await client.index.create({
+      name: 'interview-clip-index',
+      models: [
+        { name: 'marengo2.7', options: ['visual', 'audio'] },
+        { name: 'pegasus1.2', options: ['visual', 'audio'] },
+      ],
+    });
+
+    // 3. Upload video and create indexing task
+    const task = await client.task.create({
+      indexId: index.id,
+      file: videoPath,
+    });
+
+    await task.waitForDone(50, (t) => {
+      console.log(`  Status = ${t.status}`);
+    });
+
+    if (task.status !== 'ready') {
+      throw new Error(`❌ Indexing failed with status: ${task.status}`);
+    }
+
+    // 4. Run open-ended analysis with your custom prompt
+    const prompt = "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.";
+    const result = await client.analyze(task.videoId, prompt);
+
+    // 5. Extract and return score
+    const scoreText = result?.data?.trim();
+    const parsedScore = parseInt(scoreText.match(/\d+/)?.[0]);
+
+    if (isNaN(parsedScore)) {
+      throw new Error("❌ No valid integer score returned from model.");
+    }
+
+    return parsedScore;
+  } catch (error) {
+    throw error;
+  }
+}
