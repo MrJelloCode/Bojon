@@ -330,8 +330,11 @@ async function handleRequest(req, res) {
         // POST /upload-and-analyze
         if (req.method === "POST" && pathname === "/upload-and-analyze") {
             // Save incoming WebM to disk
-            const webmFilename = `video_${Date.now()}.webm`;
-            const mp4Filename = `video_${Date.now()}.mp4`;
+            const username = new URL(req.url, `http://${req.headers.host}`).searchParams.get("username") || "unknown";
+            const safeUsername = username.replace(/[^a-zA-Z0-9_-]/g, "_"); // sanitize to prevent directory traversal or illegal characters
+
+            const webmFilename = `video_${safeUsername}.webm`;
+            const mp4Filename = `video_${safeUsername}.mp4`;
             const webmPath = path.join(__dirname, "video", webmFilename);
             const mp4Path = path.join(__dirname, "video", mp4Filename);
 
