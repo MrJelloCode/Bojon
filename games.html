@@ -33,7 +33,7 @@
 
     #preview {
       width: 100vw;
-      height: calc(100vh - 140px);
+      height: calc(100vh - 180px);
       transform: scale(0.75);
       object-fit: contain;
       display: block;
@@ -62,37 +62,60 @@
       height: 100%;
       width: 0;
       background-color: var(--accent);
-      animation: fillTimer 20s linear forwards;
     }
 
-    @keyframes fillTimer {
-      from { width: 0%; }
-      to { width: 100%; }
+    #startBtn {
+      display: block;
+      margin: 1rem auto;
+      background-color: var(--primary);
+      color: var(--background);
+      font-size: 1rem;
+      padding: 0.5rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #startBtn:disabled {
+      background-color: #888;
+      cursor: not-allowed;
     }
   </style>
 </head>
 <body>
-  <div id="question">Loading question...</div>
+  <div id="question">Click "Start Match" to begin</div>
+  <button id="startBtn">Start Match</button>
   <video id="preview" autoplay muted playsinline></video>
   <div id="timerBar"><div id="timerFill"></div></div>
 
   <script>
-    async function fetchQuestion() {
+    async function startMatchSequence() {
       const username = localStorage.getItem("userId") || "anon";
+      const startBtn = document.getElementById("startBtn");
+      startBtn.disabled = true;
+      startBtn.textContent = "Searching for match...";
 
       try {
-        // First try to match
+        // Match opponent
         const matchRes = await fetch(`/auto-match?username=${username}`);
         await matchRes.json();
 
-        // Then request question
+        // Get question
         const response = await fetch(`/get-interview-question?username=${username}`);
         const data = await response.json();
         const text = data.question || "[Error loading question]";
         document.getElementById("question").textContent = text;
+
+        // Start timer animation
+        document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
+
+        // Start recording
+        await startWebcamAndRecord();
       } catch (error) {
-        console.error("Failed to fetch question from backend:", error);
+        console.error("Match or question fetch failed:", error);
         document.getElementById("question").textContent = "[Error loading question]";
+        startBtn.disabled = false;
+        startBtn.textContent = "Start Match";
       }
     }
 
@@ -135,10 +158,7 @@
       }
     }
 
-    window.onload = async () => {
-      await fetchQuestion();
-      await startWebcamAndRecord();
-    };
+    document.getElementById("startBtn").addEventListener("click", startMatchSequence);
   </script>
 </body>
 </html>
