@@ -9,8 +9,7 @@ dotenv.config();
 const client = new TwelveLabs({ apiKey: process.env.TL_API_KEY });
 
 // Shared evaluation prompt
-const evaluationPrompt =
-  "You are now a (decently) strict evaluator. I need you to rate the mp4 clip based off 1. Clarity 2. Relevant Language (on topic & logical structured) 3. Pace/Delivery 4. Time Use & 5. Posture and Facial Expressions. Each of these should be rated out of 20, and then you should return to me a single integer between 0-100 based off the performance of the user. Penalize the user for looking away/ reading off a script. Do not return any other text, just the integer score.";
+const evaluationPrompt = "Rate this interview clip out of 100 based on clarity, topic knowledge, relevant language, delivery, and posture — weigh clarity and knowledge most; return only an integer score.";
 
 // Get or create index
 async function getOrCreateIndex(name = 'interview-clip-index') {
