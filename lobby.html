@@ -172,7 +172,9 @@
 
     async function startMatchmaking() {
       try {
-        const response = await fetch(`https://humble-marmoset-natural.ngrok-free.app/auto-match?username=${username}`);
+        // Get the username text, not the element
+        const username = document.getElementById('username').textContent.trim();
+        const response = await fetch(`https://humble-marmoset-natural.ngrok-free.app/auto-match?username=${encodeURIComponent(username)}`);
         const data = await response.json();
 
         if (data.opponent) {
