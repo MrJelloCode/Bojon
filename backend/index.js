@@ -195,9 +195,14 @@ async function handleRequest(req, res) {
                     { upsert: true, returnDocument: "after" }
                 );
 
-                // Always return the user's ELO (default to 500 if missing)
-                const elo = (result.value && result.value.elo !== undefined && result.value.elo !== null)
-                    ? result.value.elo
+                // If result.value is null (new user), fetch the user
+                let userDoc = result.value;
+                if (!userDoc) {
+                    userDoc = await collection.findOne({ username: username });
+                }
+
+                const elo = (userDoc && userDoc.elo !== undefined && userDoc.elo !== null)
+                    ? userDoc.elo
                     : 500;
 
                 res.writeHead(200, { "Content-Type": "application/json" });
