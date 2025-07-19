@@ -1,0 +1,5430 @@
+{
+  "info": {
+    "title": "Ribbon API",
+    "version": "v1",
+    "description": "API for Ribbon"
+  },
+  "servers": [
+    {
+      "url": "https://app.ribbon.ai/be-api/"
+    },
+    {
+      "url": "https://staging.ribbon.ai/be-api/"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "UUID",
+        "description": "Provide your API key UUID in the 'Authorization' header prefixed with 'Bearer '.\nExample: 'Authorization: Bearer 123e4567-e89b-12d3-a456-426614174000'"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "Error code"
+          },
+          "status": {
+            "type": "string",
+            "description": "Error name"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "errors": {
+            "type": "object",
+            "description": "Errors"
+          }
+        }
+      },
+      "PaginationMetadata": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          },
+          "first_page": {
+            "type": "integer"
+          },
+          "last_page": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "previous_page": {
+            "type": "integer"
+          },
+          "next_page": {
+            "type": "integer"
+          }
+        }
+      },
+      "PingResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Returns 'pong'"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "Word": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "type": "number"
+          },
+          "start": {
+            "type": "number"
+          },
+          "word": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "end",
+          "start",
+          "word"
+        ]
+      },
+      "Segment": {
+        "type": "object",
+        "properties": {
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "end": {
+                  "type": "number"
+                },
+                "start": {
+                  "type": "number"
+                },
+                "word": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "end",
+                "start",
+                "word"
+              ]
+            }
+          },
+          "content": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "role",
+          "words"
+        ]
+      },
+      "BaseSegment": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "role"
+        ]
+      },
+      "QuestionToTranscriptMapping": {
+        "type": "object",
+        "properties": {
+          "script_question": {
+            "type": "string",
+            "description": "The question as provided during interview flow creation."
+          },
+          "transcript_item_indices": {
+            "type": "array",
+            "description": "A list of indices. The indices are the indices of the items in transcript_with_timestamp which are relevant to the script question. It includes the question asked by the agent as well as the user answers, but can also include follow up questions. The indices are often but not necessarily consecutive.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "start_timestamp": {
+            "type": "number",
+            "description": "The start timestamp of the section of the recording that is relevant to the script question."
+          },
+          "end_timestamp": {
+            "type": "number",
+            "description": "The end timestamp of the section of the recording that is relevant to the script question."
+          },
+          "transcript_items": {
+            "type": "array",
+            "description": "The items in transcript_with_timestamp which are relevant to the script question. For brevity, these items do not include a detailed list of words, but these can be accessed from transcript_with_timestamp by the transcript_item_indices",
+            "items": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "content",
+                "role"
+              ]
+            }
+          }
+        },
+        "required": [
+          "end_timestamp",
+          "script_question",
+          "start_timestamp",
+          "transcript_item_indices",
+          "transcript_items"
+        ]
+      },
+      "InterviewData": {
+        "type": "object",
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "description": "Full transcript of the interview."
+          },
+          "transcript_with_timestamp": {
+            "type": "array",
+            "description": "Full transcript of the interview with word-level timestamps.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "words": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "end": {
+                        "type": "number"
+                      },
+                      "start": {
+                        "type": "number"
+                      },
+                      "word": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "end",
+                      "start",
+                      "word"
+                    ]
+                  }
+                },
+                "content": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "content",
+                "role",
+                "words"
+              ]
+            }
+          },
+          "questions_to_transcript_mapping": {
+            "type": "array",
+            "description": "A mapping of all the script questions to the actual interview transcript segments.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "script_question": {
+                  "type": "string",
+                  "description": "The question as provided during interview flow creation."
+                },
+                "transcript_item_indices": {
+                  "type": "array",
+                  "description": "A list of indices. The indices are the indices of the items in transcript_with_timestamp which are relevant to the script question. It includes the question asked by the agent as well as the user answers, but can also include follow up questions. The indices are often but not necessarily consecutive.",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "start_timestamp": {
+                  "type": "number",
+                  "description": "The start timestamp of the section of the recording that is relevant to the script question."
+                },
+                "end_timestamp": {
+                  "type": "number",
+                  "description": "The end timestamp of the section of the recording that is relevant to the script question."
+                },
+                "transcript_items": {
+                  "type": "array",
+                  "description": "The items in transcript_with_timestamp which are relevant to the script question. For brevity, these items do not include a detailed list of words, but these can be accessed from transcript_with_timestamp by the transcript_item_indices",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "content": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "content",
+                      "role"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "end_timestamp",
+                "script_question",
+                "start_timestamp",
+                "transcript_item_indices",
+                "transcript_items"
+              ]
+            }
+          },
+          "audio_url": {
+            "type": "string",
+            "description": "Url to the interview audio recording."
+          },
+          "video_url": {
+            "type": "string",
+            "default": null,
+            "description": "Url to the interview video recording.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "audio_url",
+          "questions_to_transcript_mapping",
+          "transcript",
+          "transcript_with_timestamp"
+        ]
+      },
+      "Interview": {
+        "type": "object",
+        "properties": {
+          "interview_flow_id": {
+            "type": "string",
+            "description": "The ID of the interview flow."
+          },
+          "interview_id": {
+            "type": "string",
+            "description": "The ID of the interview."
+          },
+          "status": {
+            "description": "The status of the interview.",
+            "type": "string",
+            "enum": [
+              "incomplete",
+              "completed"
+            ]
+          },
+          "interview_data": {
+            "description": "Data for the completed interview. If the interview is incomplete, this field will be null.",
+            "allOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "transcript": {
+                    "type": "string",
+                    "description": "Full transcript of the interview."
+                  },
+                  "transcript_with_timestamp": {
+                    "type": "array",
+                    "description": "Full transcript of the interview with word-level timestamps.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "words": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "end": {
+                                "type": "number"
+                              },
+                              "start": {
+                                "type": "number"
+                              },
+                              "word": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "end",
+                              "start",
+                              "word"
+                            ]
+                          }
+                        },
+                        "content": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "content",
+                        "role",
+                        "words"
+                      ]
+                    }
+                  },
+                  "questions_to_transcript_mapping": {
+                    "type": "array",
+                    "description": "A mapping of all the script questions to the actual interview transcript segments.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "script_question": {
+                          "type": "string",
+                          "description": "The question as provided during interview flow creation."
+                        },
+                        "transcript_item_indices": {
+                          "type": "array",
+                          "description": "A list of indices. The indices are the indices of the items in transcript_with_timestamp which are relevant to the script question. It includes the question asked by the agent as well as the user answers, but can also include follow up questions. The indices are often but not necessarily consecutive.",
+                          "items": {
+                            "type": "integer"
+                          }
+                        },
+                        "start_timestamp": {
+                          "type": "number",
+                          "description": "The start timestamp of the section of the recording that is relevant to the script question."
+                        },
+                        "end_timestamp": {
+                          "type": "number",
+                          "description": "The end timestamp of the section of the recording that is relevant to the script question."
+                        },
+                        "transcript_items": {
+                          "type": "array",
+                          "description": "The items in transcript_with_timestamp which are relevant to the script question. For brevity, these items do not include a detailed list of words, but these can be accessed from transcript_with_timestamp by the transcript_item_indices",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "content": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "content",
+                              "role"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "end_timestamp",
+                        "script_question",
+                        "start_timestamp",
+                        "transcript_item_indices",
+                        "transcript_items"
+                      ]
+                    }
+                  },
+                  "audio_url": {
+                    "type": "string",
+                    "description": "Url to the interview audio recording."
+                  },
+                  "video_url": {
+                    "type": "string",
+                    "default": null,
+                    "description": "Url to the interview video recording.",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "audio_url",
+                  "questions_to_transcript_mapping",
+                  "transcript",
+                  "transcript_with_timestamp"
+                ]
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "interview_data",
+          "interview_flow_id",
+          "interview_id",
+          "status"
+        ]
+      },
+      "GetInterviewsResponse": {
+        "type": "object",
+        "properties": {
+          "interviews": {
+            "type": "array",
+            "description": "A list of interviews.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "interview_flow_id": {
+                  "type": "string",
+                  "description": "The ID of the interview flow."
+                },
+                "interview_id": {
+                  "type": "string",
+                  "description": "The ID of the interview."
+                },
+                "status": {
+                  "description": "The status of the interview.",
+                  "type": "string",
+                  "enum": [
+                    "incomplete",
+                    "completed"
+                  ]
+                },
+                "interview_data": {
+                  "description": "Data for the completed interview. If the interview is incomplete, this field will be null.",
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "transcript": {
+                          "type": "string",
+                          "description": "Full transcript of the interview."
+                        },
+                        "transcript_with_timestamp": {
+                          "type": "array",
+                          "description": "Full transcript of the interview with word-level timestamps.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "words": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "end": {
+                                      "type": "number"
+                                    },
+                                    "start": {
+                                      "type": "number"
+                                    },
+                                    "word": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "end",
+                                    "start",
+                                    "word"
+                                  ]
+                                }
+                              },
+                              "content": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "content",
+                              "role",
+                              "words"
+                            ]
+                          }
+                        },
+                        "questions_to_transcript_mapping": {
+                          "type": "array",
+                          "description": "A mapping of all the script questions to the actual interview transcript segments.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "script_question": {
+                                "type": "string",
+                                "description": "The question as provided during interview flow creation."
+                              },
+                              "transcript_item_indices": {
+                                "type": "array",
+                                "description": "A list of indices. The indices are the indices of the items in transcript_with_timestamp which are relevant to the script question. It includes the question asked by the agent as well as the user answers, but can also include follow up questions. The indices are often but not necessarily consecutive.",
+                                "items": {
+                                  "type": "integer"
+                                }
+                              },
+                              "start_timestamp": {
+                                "type": "number",
+                                "description": "The start timestamp of the section of the recording that is relevant to the script question."
+                              },
+                              "end_timestamp": {
+                                "type": "number",
+                                "description": "The end timestamp of the section of the recording that is relevant to the script question."
+                              },
+                              "transcript_items": {
+                                "type": "array",
+                                "description": "The items in transcript_with_timestamp which are relevant to the script question. For brevity, these items do not include a detailed list of words, but these can be accessed from transcript_with_timestamp by the transcript_item_indices",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "content": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "content",
+                                    "role"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "end_timestamp",
+                              "script_question",
+                              "start_timestamp",
+                              "transcript_item_indices",
+                              "transcript_items"
+                            ]
+                          }
+                        },
+                        "audio_url": {
+                          "type": "string",
+                          "description": "Url to the interview audio recording."
+                        },
+                        "video_url": {
+                          "type": "string",
+                          "default": null,
+                          "description": "Url to the interview video recording.",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "audio_url",
+                        "questions_to_transcript_mapping",
+                        "transcript",
+                        "transcript_with_timestamp"
+                      ]
+                    }
+                  ],
+                  "nullable": true
+                }
+              },
+              "required": [
+                "interview_data",
+                "interview_flow_id",
+                "interview_id",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "interviews"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The error message"
+          },
+          "code": {
+            "type": "integer",
+            "description": "The status code"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "status"
+        ]
+      },
+      "PostInterviewRequest": {
+        "type": "object",
+        "properties": {
+          "interview_flow_id": {
+            "type": "string",
+            "description": "The interview flow ID."
+          },
+          "interviewee_email_address": {
+            "type": "string",
+            "default": null,
+            "description": "The interviewee email address. This is used to identify the interviewee on the Ribbon platform. If not provided, this interview will not appear on the Ribbon platform",
+            "nullable": true
+          },
+          "interviewee_first_name": {
+            "type": "string",
+            "default": null,
+            "description": "The interviewee first name.",
+            "nullable": true
+          },
+          "interviewee_last_name": {
+            "type": "string",
+            "default": null,
+            "description": "The interviewee last name.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "interview_flow_id"
+        ]
+      },
+      "PostInterviewResponse": {
+        "type": "object",
+        "properties": {
+          "interview_id": {
+            "type": "string",
+            "description": "The ID of the created interview."
+          },
+          "interview_link": {
+            "type": "string",
+            "description": "The single-use link to begin and conduct the interview."
+          },
+          "hint": {
+            "type": "string",
+            "default": null,
+            "description": "Helpful hint about interview visibility.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "interview_id",
+          "interview_link"
+        ]
+      },
+      "InterviewFlow": {
+        "type": "object",
+        "properties": {
+          "interview_flow_id": {
+            "type": "string"
+          },
+          "org_name": {
+            "type": "string",
+            "description": "The name of the organization requesting the interview."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title for the interview."
+          },
+          "questions": {
+            "type": "array",
+            "description": "A list of questions to include in the interview.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "voice_id": {
+            "default": "11labs-Kate",
+            "enum": [
+              "11labs-Anna",
+              "openai-Onyx",
+              "openai-Shimmer",
+              "11labs-Anthony",
+              "11labs-Kate",
+              "11labs-Amy",
+              null
+            ],
+            "description": "The voice ID to be used for the interview agent.",
+            "nullable": true
+          },
+          "language": {
+            "default": "en-US",
+            "enum": [
+              "en-US",
+              "de-DE",
+              "es-419",
+              "hi-IN",
+              "ja-JP",
+              "pt-BR",
+              "fr-FR",
+              "zh-CN",
+              "ko-KR",
+              "vi-VN",
+              null
+            ],
+            "description": "The language of the interview flow.",
+            "nullable": true
+          },
+          "company_logo_url": {
+            "type": "string",
+            "default": null,
+            "description": "Optional URL for the company's logo.",
+            "nullable": true
+          },
+          "additional_info": {
+            "type": "string",
+            "default": null,
+            "description": "Additional information and context to guide the AI interviewer.",
+            "nullable": true
+          },
+          "interview_type": {
+            "default": "general",
+            "description": "The type of interview.",
+            "type": "string",
+            "enum": [
+              "recruitment",
+              "general",
+              null
+            ],
+            "nullable": true
+          },
+          "is_video_enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the interview is video recorded or not.",
+            "nullable": true
+          },
+          "is_phone_call_enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether candidates can phone into interviews instead of online calls or not.",
+            "nullable": true
+          },
+          "is_doc_upload_enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether candidates can add resumes or other documents during the interview or not.",
+            "nullable": true
+          },
+          "redirect_url": {
+            "type": "string",
+            "default": null,
+            "description": "The URL where interviewee will be redirected after completing the interview. Make sure you're using the full URL, including https://",
+            "nullable": true
+          },
+          "webhook_url": {
+            "type": "string",
+            "default": null,
+            "description": "The URL that will be called after interview processing is complete. The payload will contain interview_flow_id, interview_id, and status.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "interview_flow_id",
+          "org_name",
+          "questions",
+          "title"
+        ]
+      },
+      "GetInterviewFlowsResponse": {
+        "type": "object",
+        "properties": {
+          "interview_flows": {
+            "type": "array",
+            "description": "A list of interview flows.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "interview_flow_id": {
+                  "type": "string"
+                },
+                "org_name": {
+                  "type": "string",
+                  "description": "The name of the organization requesting the interview."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "The title for the interview."
+                },
+                "questions": {
+                  "type": "array",
+                  "description": "A list of questions to include in the interview.",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "voice_id": {
+                  "default": "11labs-Kate",
+                  "enum": [
+                    "11labs-Anna",
+                    "openai-Onyx",
+                    "openai-Shimmer",
+                    "11labs-Anthony",
+                    "11labs-Kate",
+                    "11labs-Amy",
+                    null
+                  ],
+                  "description": "The voice ID to be used for the interview agent.",
+                  "nullable": true
+                },
+                "language": {
+                  "default": "en-US",
+                  "enum": [
+                    "en-US",
+                    "de-DE",
+                    "es-419",
+                    "hi-IN",
+                    "ja-JP",
+                    "pt-BR",
+                    "fr-FR",
+                    "zh-CN",
+                    "ko-KR",
+                    "vi-VN",
+                    null
+                  ],
+                  "description": "The language of the interview flow.",
+                  "nullable": true
+                },
+                "company_logo_url": {
+                  "type": "string",
+                  "default": null,
+                  "description": "Optional URL for the company's logo.",
+                  "nullable": true
+                },
+                "additional_info": {
+                  "type": "string",
+                  "default": null,
+                  "description": "Additional information and context to guide the AI interviewer.",
+                  "nullable": true
+                },
+                "interview_type": {
+                  "default": "general",
+                  "description": "The type of interview.",
+                  "type": "string",
+                  "enum": [
+                    "recruitment",
+                    "general",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "is_video_enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Whether the interview is video recorded or not.",
+                  "nullable": true
+                },
+                "is_phone_call_enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether candidates can phone into interviews instead of online calls or not.",
+                  "nullable": true
+                },
+                "is_doc_upload_enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Whether candidates can add resumes or other documents during the interview or not.",
+                  "nullable": true
+                },
+                "redirect_url": {
+                  "type": "string",
+                  "default": null,
+                  "description": "The URL where interviewee will be redirected after completing the interview. Make sure you're using the full URL, including https://",
+                  "nullable": true
+                },
+                "webhook_url": {
+                  "type": "string",
+                  "default": null,
+                  "description": "The URL that will be called after interview processing is complete. The payload will contain interview_flow_id, interview_id, and status.",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "interview_flow_id",
+                "org_name",
+                "questions",
+                "title"
+              ]
+            }
+          }
+        },
+        "required": [
+          "interview_flows"
+        ]
+      },
+      "PostInterviewFlowsRequest": {
+        "type": "object",
+        "properties": {
+          "org_name": {
+            "type": "string",
+            "description": "The name of the organization requesting the interview."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title for the interview."
+          },
+          "questions": {
+            "type": "array",
+            "description": "A list of questions to include in the interview.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "voice_id": {
+            "default": "11labs-Kate",
+            "enum": [
+              "11labs-Anna",
+              "openai-Onyx",
+              "openai-Shimmer",
+              "11labs-Anthony",
+              "11labs-Kate",
+              "11labs-Amy",
+              null
+            ],
+            "description": "The voice ID to be used for the interview agent.",
+            "nullable": true
+          },
+          "language": {
+            "default": "en-US",
+            "enum": [
+              "en-US",
+              "de-DE",
+              "es-419",
+              "hi-IN",
+              "ja-JP",
+              "pt-BR",
+              "fr-FR",
+              "zh-CN",
+              "ko-KR",
+              "vi-VN",
+              null
+            ],
+            "description": "The language of the interview flow.",
+            "nullable": true
+          },
+          "company_logo_url": {
+            "type": "string",
+            "default": null,
+            "description": "Optional URL for the company's logo.",
+            "nullable": true
+          },
+          "additional_info": {
+            "type": "string",
+            "default": null,
+            "description": "Additional information and context to guide the AI interviewer.",
+            "nullable": true
+          },
+          "interview_type": {
+            "default": "general",
+            "description": "The type of interview.",
+            "type": "string",
+            "enum": [
+              "recruitment",
+              "general",
+              null
+            ],
+            "nullable": true
+          },
+          "is_video_enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the interview is video recorded or not.",
+            "nullable": true
+          },
+          "is_phone_call_enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether candidates can phone into interviews instead of online calls or not.",
+            "nullable": true
+          },
+          "is_doc_upload_enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether candidates can add resumes or other documents during the interview or not.",
+            "nullable": true
+          },
+          "redirect_url": {
+            "type": "string",
+            "default": null,
+            "description": "The URL where interviewee will be redirected after completing the interview. Make sure you're using the full URL, including https://",
+            "nullable": true
+          },
+          "webhook_url": {
+            "type": "string",
+            "default": null,
+            "description": "The URL that will be called after interview processing is complete. The payload will contain interview_flow_id, interview_id, and status.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "org_name",
+          "questions",
+          "title"
+        ]
+      },
+      "PostInterviewFlowsResponse": {
+        "type": "object",
+        "properties": {
+          "interview_flow_id": {
+            "type": "string",
+            "description": "The ID of the interview flow."
+          }
+        },
+        "required": [
+          "interview_flow_id"
+        ]
+      }
+    },
+    "responses": {
+      "DEFAULT_ERROR": {
+        "description": "Default error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "description": "Error code"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Error name"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message"
+                },
+                "errors": {
+                  "type": "object",
+                  "description": "Errors"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UNPROCESSABLE_ENTITY": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "description": "Error code"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Error name"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message"
+                },
+                "errors": {
+                  "type": "object",
+                  "description": "Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/ping": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Returns 'pong'"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/interviews": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "The number of interviews to return.",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "The offset for the list of interviews.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "The status of the interviews to return.",
+            "schema": {
+              "default": "completed",
+              "type": "string",
+              "enum": [
+                "incomplete",
+                "completed"
+              ]
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interviews": {
+                      "type": "array",
+                      "description": "A list of interviews.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "interview_flow_id": {
+                            "type": "string",
+                            "description": "The ID of the interview flow."
+                          },
+                          "interview_id": {
+                            "type": "string",
+                            "description": "The ID of the interview."
+                          },
+                          "status": {
+                            "description": "The status of the interview.",
+                            "type": "string",
+                            "enum": [
+                              "incomplete",
+                              "completed"
+                            ]
+                          },
+                          "interview_data": {
+                            "description": "Data for the completed interview. If the interview is incomplete, this field will be null.",
+                            "allOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "transcript": {
+                                    "type": "string",
+                                    "description": "Full transcript of the interview."
+                                  },
+                                  "transcript_with_timestamp": {
+                                    "type": "array",
+                                    "description": "Full transcript of the interview with word-level timestamps.",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "words": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "end": {
+                                                "type": "number"
+                                              },
+                                              "start": {
+                                                "type": "number"
+                                              },
+                                              "word": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "end",
+                                              "start",
+                                              "word"
+                                            ]
+                                          }
+                                        },
+                                        "content": {
+                                          "type": "string"
+                                        },
+                                        "role": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "content",
+                                        "role",
+                                        "words"
+                                      ]
+                                    }
+                                  },
+                                  "questions_to_transcript_mapping": {
+                                    "type": "array",
+                                    "description": "A mapping of all the script questions to the actual interview transcript segments.",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "script_question": {
+                                          "type": "string",
+                                          "description": "The question as provided during interview flow creation."
+                                        },
+                                        "transcript_item_indices": {
+                                          "type": "array",
+                                          "description": "A list of indices. The indices are the indices of the items in transcript_with_timestamp which are relevant to the script question. It includes the question asked by the agent as well as the user answers, but can also include follow up questions. The indices are often but not necessarily consecutive.",
+                                          "items": {
+                                            "type": "integer"
+                                          }
+                                        },
+                                        "start_timestamp": {
+                                          "type": "number",
+                                          "description": "The start timestamp of the section of the recording that is relevant to the script question."
+                                        },
+                                        "end_timestamp": {
+                                          "type": "number",
+                                          "description": "The end timestamp of the section of the recording that is relevant to the script question."
+                                        },
+                                        "transcript_items": {
+                                          "type": "array",
+                                          "description": "The items in transcript_with_timestamp which are relevant to the script question. For brevity, these items do not include a detailed list of words, but these can be accessed from transcript_with_timestamp by the transcript_item_indices",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "content": {
+                                                "type": "string"
+                                              },
+                                              "role": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "content",
+                                              "role"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "end_timestamp",
+                                        "script_question",
+                                        "start_timestamp",
+                                        "transcript_item_indices",
+                                        "transcript_items"
+                                      ]
+                                    }
+                                  },
+                                  "audio_url": {
+                                    "type": "string",
+                                    "description": "Url to the interview audio recording."
+                                  },
+                                  "video_url": {
+                                    "type": "string",
+                                    "default": null,
+                                    "description": "Url to the interview video recording.",
+                                    "nullable": true
+                                  }
+                                },
+                                "required": [
+                                  "audio_url",
+                                  "questions_to_transcript_mapping",
+                                  "transcript",
+                                  "transcript_with_timestamp"
+                                ]
+                              }
+                            ],
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "interview_data",
+                          "interview_flow_id",
+                          "interview_id",
+                          "status"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "interviews"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interview_id": {
+                      "type": "string",
+                      "description": "The ID of the created interview."
+                    },
+                    "interview_link": {
+                      "type": "string",
+                      "description": "The single-use link to begin and conduct the interview."
+                    },
+                    "hint": {
+                      "type": "string",
+                      "default": null,
+                      "description": "Helpful hint about interview visibility.",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "interview_id",
+                    "interview_link"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The interview flow found does not belong to authenticated team or was not created via API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No interview flow found with provided interview_flow_id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "interview_flow_id": {
+                    "type": "string",
+                    "description": "The interview flow ID."
+                  },
+                  "interviewee_email_address": {
+                    "type": "string",
+                    "default": null,
+                    "description": "The interviewee email address. This is used to identify the interviewee on the Ribbon platform. If not provided, this interview will not appear on the Ribbon platform",
+                    "nullable": true
+                  },
+                  "interviewee_first_name": {
+                    "type": "string",
+                    "default": null,
+                    "description": "The interviewee first name.",
+                    "nullable": true
+                  },
+                  "interviewee_last_name": {
+                    "type": "string",
+                    "default": null,
+                    "description": "The interviewee last name.",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "interview_flow_id"
+                ]
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/interviews/{interview_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "interview_id",
+            "description": "The ID of the interview.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interview_flow_id": {
+                      "type": "string",
+                      "description": "The ID of the interview flow."
+                    },
+                    "interview_id": {
+                      "type": "string",
+                      "description": "The ID of the interview."
+                    },
+                    "status": {
+                      "description": "The status of the interview.",
+                      "type": "string",
+                      "enum": [
+                        "incomplete",
+                        "completed"
+                      ]
+                    },
+                    "interview_data": {
+                      "description": "Data for the completed interview. If the interview is incomplete, this field will be null.",
+                      "allOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "transcript": {
+                              "type": "string",
+                              "description": "Full transcript of the interview."
+                            },
+                            "transcript_with_timestamp": {
+                              "type": "array",
+                              "description": "Full transcript of the interview with word-level timestamps.",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "words": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "end": {
+                                          "type": "number"
+                                        },
+                                        "start": {
+                                          "type": "number"
+                                        },
+                                        "word": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "end",
+                                        "start",
+                                        "word"
+                                      ]
+                                    }
+                                  },
+                                  "content": {
+                                    "type": "string"
+                                  },
+                                  "role": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "content",
+                                  "role",
+                                  "words"
+                                ]
+                              }
+                            },
+                            "questions_to_transcript_mapping": {
+                              "type": "array",
+                              "description": "A mapping of all the script questions to the actual interview transcript segments.",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "script_question": {
+                                    "type": "string",
+                                    "description": "The question as provided during interview flow creation."
+                                  },
+                                  "transcript_item_indices": {
+                                    "type": "array",
+                                    "description": "A list of indices. The indices are the indices of the items in transcript_with_timestamp which are relevant to the script question. It includes the question asked by the agent as well as the user answers, but can also include follow up questions. The indices are often but not necessarily consecutive.",
+                                    "items": {
+                                      "type": "integer"
+                                    }
+                                  },
+                                  "start_timestamp": {
+                                    "type": "number",
+                                    "description": "The start timestamp of the section of the recording that is relevant to the script question."
+                                  },
+                                  "end_timestamp": {
+                                    "type": "number",
+                                    "description": "The end timestamp of the section of the recording that is relevant to the script question."
+                                  },
+                                  "transcript_items": {
+                                    "type": "array",
+                                    "description": "The items in transcript_with_timestamp which are relevant to the script question. For brevity, these items do not include a detailed list of words, but these can be accessed from transcript_with_timestamp by the transcript_item_indices",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "content": {
+                                          "type": "string"
+                                        },
+                                        "role": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "content",
+                                        "role"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "end_timestamp",
+                                  "script_question",
+                                  "start_timestamp",
+                                  "transcript_item_indices",
+                                  "transcript_items"
+                                ]
+                              }
+                            },
+                            "audio_url": {
+                              "type": "string",
+                              "description": "Url to the interview audio recording."
+                            },
+                            "video_url": {
+                              "type": "string",
+                              "default": null,
+                              "description": "Url to the interview video recording.",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "audio_url",
+                            "questions_to_transcript_mapping",
+                            "transcript",
+                            "transcript_with_timestamp"
+                          ]
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "interview_data",
+                    "interview_flow_id",
+                    "interview_id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The interview found does not belong to authenticated team.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No interview found with provided interview_session_id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "interview_id",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    "/v1/interview-flows": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "The number of interview flows to return.",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "The offset for the list of interview flows.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interview_flows": {
+                      "type": "array",
+                      "description": "A list of interview flows.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "interview_flow_id": {
+                            "type": "string"
+                          },
+                          "org_name": {
+                            "type": "string",
+                            "description": "The name of the organization requesting the interview."
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "The title for the interview."
+                          },
+                          "questions": {
+                            "type": "array",
+                            "description": "A list of questions to include in the interview.",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "voice_id": {
+                            "default": "11labs-Kate",
+                            "enum": [
+                              "11labs-Anna",
+                              "openai-Onyx",
+                              "openai-Shimmer",
+                              "11labs-Anthony",
+                              "11labs-Kate",
+                              "11labs-Amy",
+                              null
+                            ],
+                            "description": "The voice ID to be used for the interview agent.",
+                            "nullable": true
+                          },
+                          "language": {
+                            "default": "en-US",
+                            "enum": [
+                              "en-US",
+                              "de-DE",
+                              "es-419",
+                              "hi-IN",
+                              "ja-JP",
+                              "pt-BR",
+                              "fr-FR",
+                              "zh-CN",
+                              "ko-KR",
+                              "vi-VN",
+                              null
+                            ],
+                            "description": "The language of the interview flow.",
+                            "nullable": true
+                          },
+                          "company_logo_url": {
+                            "type": "string",
+                            "default": null,
+                            "description": "Optional URL for the company's logo.",
+                            "nullable": true
+                          },
+                          "additional_info": {
+                            "type": "string",
+                            "default": null,
+                            "description": "Additional information and context to guide the AI interviewer.",
+                            "nullable": true
+                          },
+                          "interview_type": {
+                            "default": "general",
+                            "description": "The type of interview.",
+                            "type": "string",
+                            "enum": [
+                              "recruitment",
+                              "general",
+                              null
+                            ],
+                            "nullable": true
+                          },
+                          "is_video_enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Whether the interview is video recorded or not.",
+                            "nullable": true
+                          },
+                          "is_phone_call_enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Whether candidates can phone into interviews instead of online calls or not.",
+                            "nullable": true
+                          },
+                          "is_doc_upload_enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Whether candidates can add resumes or other documents during the interview or not.",
+                            "nullable": true
+                          },
+                          "redirect_url": {
+                            "type": "string",
+                            "default": null,
+                            "description": "The URL where interviewee will be redirected after completing the interview. Make sure you're using the full URL, including https://",
+                            "nullable": true
+                          },
+                          "webhook_url": {
+                            "type": "string",
+                            "default": null,
+                            "description": "The URL that will be called after interview processing is complete. The payload will contain interview_flow_id, interview_id, and status.",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "interview_flow_id",
+                          "org_name",
+                          "questions",
+                          "title"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "interview_flows"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interview_flow_id": {
+                      "type": "string",
+                      "description": "The ID of the interview flow."
+                    }
+                  },
+                  "required": [
+                    "interview_flow_id"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unable to use file provided for company_logo_url, please provide valid url, supported image types are image/jpeg and image/png",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "org_name": {
+                    "type": "string",
+                    "description": "The name of the organization requesting the interview."
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "The title for the interview."
+                  },
+                  "questions": {
+                    "type": "array",
+                    "description": "A list of questions to include in the interview.",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "voice_id": {
+                    "default": "11labs-Kate",
+                    "enum": [
+                      "11labs-Anna",
+                      "openai-Onyx",
+                      "openai-Shimmer",
+                      "11labs-Anthony",
+                      "11labs-Kate",
+                      "11labs-Amy",
+                      null
+                    ],
+                    "description": "The voice ID to be used for the interview agent.",
+                    "nullable": true
+                  },
+                  "language": {
+                    "default": "en-US",
+                    "enum": [
+                      "en-US",
+                      "de-DE",
+                      "es-419",
+                      "hi-IN",
+                      "ja-JP",
+                      "pt-BR",
+                      "fr-FR",
+                      "zh-CN",
+                      "ko-KR",
+                      "vi-VN",
+                      null
+                    ],
+                    "description": "The language of the interview flow.",
+                    "nullable": true
+                  },
+                  "company_logo_url": {
+                    "type": "string",
+                    "default": null,
+                    "description": "Optional URL for the company's logo.",
+                    "nullable": true
+                  },
+                  "additional_info": {
+                    "type": "string",
+                    "default": null,
+                    "description": "Additional information and context to guide the AI interviewer.",
+                    "nullable": true
+                  },
+                  "interview_type": {
+                    "default": "general",
+                    "description": "The type of interview.",
+                    "type": "string",
+                    "enum": [
+                      "recruitment",
+                      "general",
+                      null
+                    ],
+                    "nullable": true
+                  },
+                  "is_video_enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether the interview is video recorded or not.",
+                    "nullable": true
+                  },
+                  "is_phone_call_enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether candidates can phone into interviews instead of online calls or not.",
+                    "nullable": true
+                  },
+                  "is_doc_upload_enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether candidates can add resumes or other documents during the interview or not.",
+                    "nullable": true
+                  },
+                  "redirect_url": {
+                    "type": "string",
+                    "default": null,
+                    "description": "The URL where interviewee will be redirected after completing the interview. Make sure you're using the full URL, including https://",
+                    "nullable": true
+                  },
+                  "webhook_url": {
+                    "type": "string",
+                    "default": null,
+                    "description": "The URL that will be called after interview processing is complete. The payload will contain interview_flow_id, interview_id, and status.",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "org_name",
+                  "questions",
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/interview-flows/{interview_flow_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "interview_flow_id",
+            "description": "The ID of the interview flow.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interview_flow_id": {
+                      "type": "string"
+                    },
+                    "org_name": {
+                      "type": "string",
+                      "description": "The name of the organization requesting the interview."
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "The title for the interview."
+                    },
+                    "questions": {
+                      "type": "array",
+                      "description": "A list of questions to include in the interview.",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "voice_id": {
+                      "default": "11labs-Kate",
+                      "enum": [
+                        "11labs-Anna",
+                        "openai-Onyx",
+                        "openai-Shimmer",
+                        "11labs-Anthony",
+                        "11labs-Kate",
+                        "11labs-Amy",
+                        null
+                      ],
+                      "description": "The voice ID to be used for the interview agent.",
+                      "nullable": true
+                    },
+                    "language": {
+                      "default": "en-US",
+                      "enum": [
+                        "en-US",
+                        "de-DE",
+                        "es-419",
+                        "hi-IN",
+                        "ja-JP",
+                        "pt-BR",
+                        "fr-FR",
+                        "zh-CN",
+                        "ko-KR",
+                        "vi-VN",
+                        null
+                      ],
+                      "description": "The language of the interview flow.",
+                      "nullable": true
+                    },
+                    "company_logo_url": {
+                      "type": "string",
+                      "default": null,
+                      "description": "Optional URL for the company's logo.",
+                      "nullable": true
+                    },
+                    "additional_info": {
+                      "type": "string",
+                      "default": null,
+                      "description": "Additional information and context to guide the AI interviewer.",
+                      "nullable": true
+                    },
+                    "interview_type": {
+                      "default": "general",
+                      "description": "The type of interview.",
+                      "type": "string",
+                      "enum": [
+                        "recruitment",
+                        "general",
+                        null
+                      ],
+                      "nullable": true
+                    },
+                    "is_video_enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Whether the interview is video recorded or not.",
+                      "nullable": true
+                    },
+                    "is_phone_call_enabled": {
+                      "type": "boolean",
+                      "default": true,
+                      "description": "Whether candidates can phone into interviews instead of online calls or not.",
+                      "nullable": true
+                    },
+                    "is_doc_upload_enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Whether candidates can add resumes or other documents during the interview or not.",
+                      "nullable": true
+                    },
+                    "redirect_url": {
+                      "type": "string",
+                      "default": null,
+                      "description": "The URL where interviewee will be redirected after completing the interview. Make sure you're using the full URL, including https://",
+                      "nullable": true
+                    },
+                    "webhook_url": {
+                      "type": "string",
+                      "default": null,
+                      "description": "The URL that will be called after interview processing is complete. The payload will contain interview_flow_id, interview_id, and status.",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "interview_flow_id",
+                    "org_name",
+                    "questions",
+                    "title"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The interview flow found does not belong to authenticated team or was not created via API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No interview flow found with provided interview_flow_id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "The error message"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "The status code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The status"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ribbon Public API"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "interview_flow_id",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    "/ping": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/ping-protected": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/new-user": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/setup-org": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/create-unregistered-org": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/sign-up-and-join-org": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/accept-org-invite": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/confirm-slack-integration": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-slack-channels": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/revoke-slack-integration": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/submit-feedback": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/confirm-verification": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/toggle-autojoin": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/generate-media-upload-details": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/create-video-profile": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/upsert-timeline-module": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/delete-user": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/view-job": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/save-job": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/apply-job": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/follow-user": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/unfollow-user": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/like-post": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/unlike-post": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/comment-post": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/view-profile": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/view-post": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/create-post": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/setup-stripe-account": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/setup-stripe-id-verification": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/setup-stripe-checkout-session": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-stripe-subscription-portal": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/redeem": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/stripe-connect-webhook": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/stripe-account-webhook": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/new-document": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/share-resume-plus": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/replace-practice-round": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/update-user-chat-context": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/on-document-update": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/on-onboarding-update": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/on-candidate-published-interview-call-update": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/auto-fill-profile": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/create-interview-flow": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/upsert-recruiting-plan": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-client-secret": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-interview-call-id": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-demo-interview-call-id": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/retell-webhook": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/kombo-webhook": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/update-interview-flow": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-ats-integration-jobs-and-stages-list": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-ats-integration-connection-link": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/delete-integration": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-ats-integrations-list": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-interview-phone-number": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/invite-friends-to-ribbon": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/send-invitation-to-join-recruiting-team": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/respond-to-invitation-to-join-recruiting-team": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/exclude-from-recruiting-team": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/leave-recruiting-team": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/delete-recruiting-team": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-recruiter-plan-details": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-recruit-catalog-pricing": {
+      "get": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/request-access-to-talent-hub-candidate-interview": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/extract-interview-flow-from-free-text": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/add-pipeline-members-from-csv": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/create-calendar-from-oauth": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/recall-webhook": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-calendar-events": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/add-bot-to-calendar-event": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/remove-bots-from-calendar-event": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/save-custom-scores": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/create-custom-scoring-from-file": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/merged-recruitment-video-webhook": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    },
+    "/get-company-details-from-website": {
+      "post": {
+        "responses": {
+          "default": {
+            "description": "Default error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Error name"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "description": "Errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "private_routes"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Ribbon Public API",
+      "description": ""
+    },
+    {
+      "name": "private_routes",
+      "description": ""
+    }
+  ],
+  "openapi": "3.0.2"
+}

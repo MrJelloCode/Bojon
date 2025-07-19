@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@api/ribbon-zogq": "file:.api/apis/ribbon-zogq",
     "dotenv": "^17.2.0",
     "mongodb": "^6.17.0",
     "node-fetch": "^2.7.0",

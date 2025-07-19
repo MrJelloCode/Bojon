@@ -11,6 +11,69 @@ const fetch = require("node-fetch");
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 
+// Sucessful Ribbon API call https://docs.ribbon.ai/reference/get_v1-ping-1
+async function testRibbon() {
+  try {
+    const ribbonZogq = await import('@api/ribbon-zogq');
+
+    ribbonZogq.default.auth(process.env.RIBBON_API_KEY); // Your exposed token
+    const ping = await ribbonZogq.default.getV1Ping();
+    console.log("Ribbon ping:", ping);
+  } catch (err) {
+    console.error("Ribbon error:", err);
+  }
+}
+testRibbon();
+//End Ribbon API call
+
+//Twelvelabs API 
+async function testTwelveLabs() {
+  try {
+    const { TwelveLabs } = await import("twelvelabs-js");
+
+    const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
+
+    const index = await client.index.create({
+      name: "Test Index",
+      models: [
+        { name: "marengo2.7", options: ["visual", "audio"] }
+      ]
+    });
+    console.log(`Created index: id=${index.id} name=${index.name}`);
+
+    const task = await client.task.create({
+      indexId: index.id,
+      url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4" // replace with your video URL
+    });
+    console.log(`Created task: id=${task.id}`);
+
+    await task.waitForDone(5000, (task) => {
+      console.log(`  Status=${task.status}`);
+    });
+
+    if (task.status !== "ready") {
+      throw new Error(`Indexing failed with status ${task.status}`);
+    }
+
+    console.log(`Upload complete. The unique identifier of your video is ${task.videoId}`);
+
+    const searchResults = await client.search.query({
+      indexId: index.id,
+      queryText: "YOUR_QUERY",
+      options: ["visual", "audio"]
+    });
+
+    for (const clip of searchResults.data) {
+      console.log(`video_id=${clip.videoId} score=${clip.score} start=${clip.start} end=${clip.end} confidence=${clip.confidence}`);
+    }
+
+  } catch (err) {
+    console.error("Twelvelabs error:", err);
+  }
+}
+
+testTwelveLabs();
+//Twelvelabs API  
 async function getGeminiResponse(prompt) {
     const apiKey = process.env.GEMINI_API_KEY;
     const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" + apiKey;

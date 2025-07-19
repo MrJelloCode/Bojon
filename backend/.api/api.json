@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "ribbon-zogq",
+      "source": "@ribbon-zogq/v1.0#dje23famalx4bgo",
+      "integrity": "sha512-0OS0gZFmq1uBE0V1WKBx8zMKdVEU+ojwb0PdP3ta6YcUtzQSOS3tqCclU9ZNmdjwcpwS92v4p0LrTOV7TvUkQg==",
+      "installerVersion": "6.1.3"
+    }
+  ]
+}
