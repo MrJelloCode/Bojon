@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/MrJelloCode/Bojon#readme",
   "dependencies": {
-    "mongodb": "^6.17.0"
+    "mongodb": "^6.17.0",
+    "twelvelabs-js": "^0.4.12"
   }
 }

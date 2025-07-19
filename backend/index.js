@@ -380,7 +380,7 @@ async function handleRequest(req, res) {
                         // Example search prompt
                         const searchResults = await client.search.query({
                             indexId: index.id,
-                            queryText: "Explain what's happening in this video?",
+                            queryText: "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.",
                             options: ["visual", "audio"]
                         });
 
