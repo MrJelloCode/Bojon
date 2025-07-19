@@ -112,6 +112,8 @@ async function handleRequest(req, res) {
         const parsedUrl = url.parse(req.url, true);
         let pathname = parsedUrl.pathname;
 
+        console.log("Incoming request:", req.method, pathname);
+
         // Default to index.html if root
         if (pathname === "/" || pathname === "/index.html") {
             pathname = "/index.html";
@@ -200,6 +202,47 @@ async function handleRequest(req, res) {
             return;
         }
 
+        // GET /auto-match?username=...
+        if (req.method === "GET" && pathname.startsWith("/auto-match")) {
+            const username = parsedUrl.query.username;
+            if (!username) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Missing username" }));
+                return;
+            }
+
+            // If someone is already waiting, pair them
+            if (waitingUser && waitingRes) {
+                // Respond to the waiting user
+                waitingRes.writeHead(200, { "Content-Type": "application/json" });
+                waitingRes.end(JSON.stringify({ opponent: username }));
+
+                // Respond to the current user
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ opponent: waitingUser }));
+
+                // Clear waiting state
+                waitingUser = null;
+                waitingRes = null;
+            } else {
+                // No one waiting, store this user and response
+                waitingUser = username;
+                waitingRes = res;
+
+                // Optionally, set a timeout so the user isn't left hanging forever
+                setTimeout(() => {
+                    if (waitingRes === res) {
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ opponent: null, message: "No match found, try again." }));
+                        waitingUser = null;
+                        waitingRes = null;
+                    }
+                }, 30000); // 30 seconds
+                // Do not respond yet; wait for another user
+            }
+            return;
+        }
+
         // Default response for other routes
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Not found" }));
@@ -208,6 +251,9 @@ async function handleRequest(req, res) {
         res.end(JSON.stringify({ error: err.message }));
     }
 }
+
+let waitingUser = null;
+let waitingRes = null;
 
 const server = http.createServer((req, res) => {
     handleRequest(req, res);
