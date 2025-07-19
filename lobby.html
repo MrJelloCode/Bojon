@@ -14,22 +14,6 @@
       --text-light: #f0f0f0;
     }
 
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes glow {
-      0%, 100% { box-shadow: 0 0 10px var(--gold); }
-      50% { box-shadow: 0 0 20px var(--gold); }
-    }
-
     body {
       margin: 0;
       padding: 2rem;
@@ -57,15 +41,12 @@
       justify-content: center;
       align-items: center;
       text-align: center;
-      animation: fadeInUp 0.6s ease forwards;
+      flex-direction: column;
     }
 
     #userStats {
       grid-area: stats;
-      flex-direction: column;
-      display: flex;
       font-size: 1.6rem;
-      animation-delay: 0.2s;
     }
 
     #eloValue {
@@ -77,29 +58,31 @@
 
     #welcome {
       grid-area: welcome;
-      justify-content: center;
       font-size: 1.8rem;
-      display: flex;
-      align-items: center;
-      padding: 1rem;
-      animation-delay: 0.4s;
     }
 
     #main {
       grid-area: main;
       display: flex;
       gap: 1rem;
-      flex-direction: row;
-      height: 100%;
     }
 
     #findBattle, #help {
       flex: 1;
-      flex-direction: column;
       display: flex;
+      flex-direction: column;
       justify-content: space-between;
       padding: 1.5rem;
       line-height: 1.75rem;
+    }
+
+    h2 {
+      color: var(--gold);
+    }
+
+    p {
+      color: var(--text-light);
+      font-size: 1rem;
     }
 
     #findBattle button, #logout button {
@@ -111,20 +94,12 @@
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      transition: all 0.25s ease-in-out;
-      animation: glow 2s infinite ease-in-out;
-    }
-
-    #findBattle button:hover, #logout button:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 15px var(--gold);
     }
 
     #leaderboard {
       grid-area: leaderboard;
-      flex-direction: column;
       display: flex;
-      animation-delay: 0.6s;
+      flex-direction: column;
     }
 
     #logout {
@@ -132,8 +107,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100px;
-      animation-delay: 0.8s;
     }
   </style>
 </head>
@@ -153,10 +126,9 @@
     </div>
     <div id="help" class="box">
       <div>
-        <h2>📘 How It Works</h2>    
+        <h2>📘 How It Works</h2>
         <p>Bojon is a 1v1 real-time interview simulator where you and another player answer the same interview question. Your responses are scored by AI, and you earn ELO points based on how well you perform. Climb the leaderboard, get instant feedback, and sharpen your communication skills with every battle.</p>
       </div>
-      <p style="font-size: 0.9rem; color: var(--text-light);">Need tips? Check out our guide in the Help section.</p>
     </div>
   </div>
   <div id="leaderboard" class="box">
@@ -171,21 +143,15 @@
     let auth0 = null;
 
     async function startMatchmaking() {
-      try {
-        // Get the username text, not the element
-        const username = document.getElementById('username').textContent.trim();
-        const response = await fetch(`https://humble-marmoset-natural.ngrok-free.app/auto-match?username=${encodeURIComponent(username)}`);
-        const data = await response.json();
+      const username = document.getElementById('username').textContent.trim();
+      const response = await fetch(`/auto-match?username=${encodeURIComponent(username)}`);
+      const data = await response.json();
 
-        if (data.opponent) {
-          alert(`Match found! Opponent: ${data.opponent}`);
-          window.location.href = "https://humble-marmoset-natural.ngrok-free.app/games.html";
-        } else {
-          alert('No match found. Please try again later.');
-        }
-      } catch (err) {
-        console.error('Error during matchmaking:', err);
-        alert('Matchmaking failed. Please try again.');
+      if (data.opponent) {
+        alert(`Match found! Opponent: ${data.opponent}`);
+        window.location.href = "/games.html";
+      } else {
+        alert('No match found. Please try again later.');
       }
     }
 
@@ -196,48 +162,27 @@
         cacheLocation: 'localstorage'
       });
 
-      const query = window.location.search;
-      if (query.includes("code=") && query.includes("state=")) {
-        try {
-          await auth0.handleRedirectCallback();
-          window.history.replaceState({}, document.title, "https://humble-marmoset-natural.ngrok-free.app/lobby.html");
-        } catch (err) {
-          console.error("Redirect callback error", err);
-        }
-      }
-
       const isAuthenticated = await auth0.isAuthenticated();
 
       if (isAuthenticated) {
         const user = await auth0.getUser();
-        document.getElementById('username').textContent =
-          '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
+        const username = user.nickname || user.name || user.email || 'Guest';
+        document.getElementById('username').textContent = '\u00A0' + username;
 
-        // Fetch ELO for the user
-        const username = encodeURIComponent(user.nickname || user.name || user.email || 'Guest');
-        fetch(`/get-elo?username=${username}`)
+        fetch(`/get-elo?username=${encodeURIComponent(username)}`)
           .then(res => res.json())
           .then(data => {
             window.currentElo = data.elo;
-            document.getElementById('userStats').textContent = `ELO: ${data.elo}`;
+            document.getElementById('eloValue').textContent = data.elo;
 
-            // Only send login after ELO is fetched
-            fetch('https://humble-marmoset-natural.ngrok-free.app/login', {
+            fetch('/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user, elo: window.currentElo })
-            })
-              .then(res => res.json())
-              .then(data => {
-                document.getElementById("eloValue").textContent = data.elo || 'N/A';
-              });
-          })
-          .catch(err => {
-            console.error('Failed to fetch ELO:', err);
-            window.currentElo = null;
+              body: JSON.stringify({ user, elo: data.elo })
+            });
           });
 
-        fetch('https://humble-marmoset-natural.ngrok-free.app/leaderboard')
+        fetch('/leaderboard')
           .then(res => res.json())
           .then(data => {
             const ul = document.getElementById('topPlayers');
@@ -248,12 +193,13 @@
               ul.appendChild(li);
             });
           });
+
       } else {
         await auth0.loginWithRedirect({ redirect_uri: window.location.href });
       }
 
       document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth0.logout({ returnTo: "https://humble-marmoset-natural.ngrok-free.app/index.html" });
+        auth0.logout({ returnTo: "/index.html" });
       });
     }
 
