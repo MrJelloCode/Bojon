@@ -200,7 +200,7 @@
 
         // Fetch ELO for the user
         const username = encodeURIComponent(user.nickname || user.name || user.email || 'Guest');
-        fetch(`http://localhost:8080/get-elo?username=${username}`)
+        fetch(`/get-elo?username=${username}`)
           .then(res => res.json())
           .then(data => {
             window.currentElo = data.elo;
