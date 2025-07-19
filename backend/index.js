@@ -1,6 +1,8 @@
 const http = require("http");
 const { MongoClient } = require("mongodb");
 const url = require("url");
+const fs = require("fs");
+const path = require("path");
 
 require("dotenv").config();
 const fetch = require("node-fetch");
@@ -30,29 +32,89 @@ async function getGeminiResponse(prompt) {
 
 async function handleRequest(req, res) {
     try {
-        await client.connect();
-        const db = client.db("bojonDB");
-        const collection = db.collection("testCollection");
-
+        // Serve static files from parent folder (Bojon)
+        const staticFolder = path.resolve(__dirname, "..");
         const parsedUrl = url.parse(req.url, true);
+        let pathname = parsedUrl.pathname;
+
+        // Default to index.html if root
+        if (pathname === "/" || pathname === "/index.html") {
+            pathname = "/index.html";
+        }
+
+        // Serve .html, .css, .js, and image files
+        if (/\.(html|css|js|png|jpg|jpeg|gif|svg)$/.test(pathname)) {
+            const filePath = path.join(staticFolder, pathname.replace(/^\/+/, ""));
+            if (fs.existsSync(filePath)) {
+                const ext = path.extname(filePath);
+                const mimeTypes = {
+                    ".html": "text/html",
+                    ".css": "text/css",
+                    ".js": "application/javascript",
+                    ".png": "image/png",
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".gif": "image/gif",
+                    ".svg": "image/svg+xml"
+                };
+                res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
+                fs.createReadStream(filePath).pipe(res);
+                return;
+            } else {
+                res.writeHead(404, { "Content-Type": "text/plain" });
+                res.end("File not found");
+                return;
+            }
+        }
 
         // GET /get-elo?username=...
-        if (req.method === "GET" && parsedUrl.pathname === "/get-elo") {
-            const username = parsedUrl.query.username;
-            if (!username) {
+        if (req.method === "GET" && pathname === "/get-elo") {
+            await client.connect();
+            const db = client.db("bojonDB");
+            const collection = db.collection("users"); // use your actual collection name
+
+            const queryUsername = parsedUrl.query.username;
+            if (!queryUsername) {
                 res.writeHead(400, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: "Missing username" }));
                 return;
             }
-            let user = await collection.findOne({ username });
-            if (user) {
+
+            const user = await collection.findOne({ username: queryUsername });
+            if (user && user.elo !== undefined) {
                 res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ username, elo: user.elo }));
+                res.end(JSON.stringify({ elo: user.elo }));
             } else {
-                await collection.insertOne({ username, elo: 500 });
-                res.writeHead(201, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ username, elo: 500 }));
+                res.writeHead(404, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ elo: null }));
             }
+            return;
+        }
+
+        // POST /login
+        if (req.method === "POST" && pathname === "/login") {
+            let body = "";
+            req.on("data", chunk => { body += chunk; });
+            req.on("end", async () => {
+                await client.connect();
+                const db = client.db("bojonDB");
+                const collection = db.collection("users");
+
+                const data = JSON.parse(body);
+                const user = data.user;
+                const username = user.nickname || user.name || user.email;
+
+                // Upsert user: create if not exists, update if exists
+                const result = await collection.findOneAndUpdate(
+                    { username: username },
+                    { $setOnInsert: { elo: 500 }, $set: { username: username } },
+                    { upsert: true, returnDocument: "after" }
+                );
+
+                const elo = (result.value && result.value.elo !== undefined) ? result.value.elo : 500;
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ elo: elo }));
+            });
             return;
         }
 
