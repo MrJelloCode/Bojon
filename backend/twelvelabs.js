@@ -22,7 +22,7 @@ async function main(videoFileName) {
 
     // 2. Create an index with both Marengo and Pegasus models
     const index = await client.index.create({
-      name: 'interview-clip-index',
+      name: 'interview-clip-index-' + Date.now(),
       models: [
         { name: 'marengo2.7', options: ['visual', 'audio'] },
         { name: 'pegasus1.2', options: ['visual', 'audio'] },
