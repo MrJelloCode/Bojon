@@ -303,6 +303,7 @@ async function handleRequest(req, res) {
             matchEntry.pending.push(res);
 
             const prompt = "Generate a very very short (solvable in a 10 second response) example technical interview question for a software engineering candidate. Make it a theory based question that can be answered only with words, no code. Only generate the question, and no other information about it.";
+            
             try {
                 const question = await getGeminiResponse(prompt);
                 matchEntry.question = question;
