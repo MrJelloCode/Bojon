@@ -172,15 +172,12 @@
 
     async function startMatchmaking() {
       try {
-        // Call the /auto-match endpoint (no username needed)
-        const response = await fetch(`/auto-match?${username}`);
+        const response = await fetch(`https://humble-marmoset-natural.ngrok-free.app/auto-match?username=${username}`);
         const data = await response.json();
 
-        // Handle the matchmaking response
-        if (data.success) {
+        if (data.opponent) {
           alert(`Match found! Opponent: ${data.opponent}`);
-          // Optionally redirect or update UI here
-
+          window.location.href = "https://humble-marmoset-natural.ngrok-free.app/games.html";
         } else {
           alert('No match found. Please try again later.');
         }
@@ -188,8 +185,6 @@
         console.error('Error during matchmaking:', err);
         alert('Matchmaking failed. Please try again.');
       }
-
-      window.location.href = "https://humble-marmoset-natural.ngrok-free.app/games.html";
     }
 
     async function configureAuth0() {
