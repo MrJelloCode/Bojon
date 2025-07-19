@@ -92,31 +92,31 @@
     async function startMatchSequence() {
       const username = localStorage.getItem("userId") || "anon";
       const startBtn = document.getElementById("startBtn");
+      const questionDiv = document.getElementById("question");
       startBtn.disabled = true;
-      startBtn.textContent = "Generating Question...";
+      startBtn.textContent = "Searching for opponent...";
 
       try {
-        // Match opponent
         const matchRes = await fetch(`/auto-match?username=${username}`);
-        await matchRes.json();
+        const matchData = await matchRes.json();
 
-        // Get question
+        if (!matchData.opponent) {
+          questionDiv.textContent = "Waiting for opponent...";
+          return;
+        }
+
+        startBtn.textContent = "Generating Question...";
+
         const response = await fetch(`/get-interview-question?username=${username}`);
         const data = await response.json();
         const text = data.question || "[Error loading question]";
-        document.getElementById("question").textContent = text;
-
-        // Hide the button once question is received
+        questionDiv.textContent = text;
         startBtn.style.display = "none";
-
-        // Start timer animation
         document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
-
-        // Start recording
         await startWebcamAndRecord();
       } catch (error) {
         console.error("Match or question fetch failed:", error);
-        document.getElementById("question").textContent = "[Error loading question]";
+        questionDiv.textContent = "[Error loading question]";
         startBtn.disabled = false;
         startBtn.textContent = "Start Match";
       }
@@ -152,7 +152,6 @@
         };
 
         mediaRecorder.start();
-
         setTimeout(() => {
           mediaRecorder.stop();
         }, 20000);
