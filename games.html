@@ -156,8 +156,12 @@
             });
             const result = await response.json();
             console.log('Upload and analyze result:', result);
+            if (response.status !== 200 || result.error) {
+              alert('Video upload or analysis failed: ' + (result.details || result.error || 'Unknown error. Please try again later.'));
+            }
           } catch (err) {
             console.error('Failed to upload and analyze video:', err);
+            alert('Video upload or analysis failed. Please check your connection and try again.');
           }
         };
 
