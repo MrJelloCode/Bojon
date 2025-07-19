@@ -14,6 +14,22 @@
       --text-light: #f0f0f0;
     }
 
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 10px var(--gold); }
+      50% { box-shadow: 0 0 20px var(--gold); }
+    }
+
     body {
       margin: 0;
       padding: 2rem;
@@ -41,10 +57,34 @@
       justify-content: center;
       align-items: center;
       text-align: center;
+      animation: fadeInUp 0.6s ease forwards;
     }
 
-    #userStats { grid-area: stats; }
-    #welcome { grid-area: welcome; justify-content: flex-end; }
+    #userStats {
+      grid-area: stats;
+      flex-direction: column;
+      display: flex;
+      font-size: 1.6rem;
+      animation-delay: 0.2s;
+    }
+
+    #eloValue {
+      font-size: 2.8rem;
+      font-weight: bold;
+      color: var(--text-light);
+      margin-top: 0.5rem;
+    }
+
+    #welcome {
+      grid-area: welcome;
+      justify-content: center;
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      animation-delay: 0.4s;
+    }
+
     #main {
       grid-area: main;
       display: flex;
@@ -52,13 +92,16 @@
       flex-direction: row;
       height: 100%;
     }
+
     #findBattle, #help {
       flex: 1;
       flex-direction: column;
       display: flex;
       justify-content: space-between;
       padding: 1.5rem;
+      line-height: 1.75rem;
     }
+
     #findBattle button, #logout button {
       background-color: var(--gold);
       color: var(--black);
@@ -69,40 +112,49 @@
       border-radius: 10px;
       cursor: pointer;
       transition: all 0.25s ease-in-out;
+      animation: glow 2s infinite ease-in-out;
     }
+
     #findBattle button:hover, #logout button:hover {
       transform: scale(1.08);
       box-shadow: 0 0 15px var(--gold);
     }
+
     #leaderboard {
       grid-area: leaderboard;
       flex-direction: column;
       display: flex;
+      animation-delay: 0.6s;
     }
+
     #logout {
       grid-area: logout;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100px;
+      animation-delay: 0.8s;
     }
   </style>
 </head>
 <body>
-  <div id="userStats" class="box">USER STATS</div>
+  <div id="userStats" class="box">
+    🧠 Your ELO
+    <div id="eloValue">Loading...</div>
+  </div>
   <div id="welcome" class="box">Welcome, <span id="username"> loading...</span>!</div>
   <div id="main">
     <div id="findBattle" class="box">
       <div>
         <h2>🚀 Start Your Interview Duel</h2>
-        <p>Face off against another job-seeker in a live mock interview. Rise through the ranks!</p>
+        <p>Test your skills by going head-to-head against another user in a 1v1 mock interview. You'll both receive the same question and have 20 seconds to respond. Our AI scores your answer in real-time and updates your ELO accordingly.</p>
       </div>
       <button onclick="startMatchmaking()">🔍 Find a Battle</button>
     </div>
     <div id="help" class="box">
       <div>
         <h2>📘 How It Works</h2>
-        <p>Answer job interview questions, earn ELO points, and climb the leaderboard. Feedback included!</p>
+        <p>Bojon is a 1v1 real-time interview simulator where you and another player answer the same interview question. Your responses are scored by AI, and you earn ELO points based on how well you perform. Climb the leaderboard, get instant feedback, and sharpen your communication skills with every battle.</p>
       </div>
       <p style="font-size: 0.9rem; color: var(--text-light);">Need tips? Check out our guide in the Help section.</p>
     </div>
@@ -164,7 +216,11 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user })
-        });
+        })
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById("eloValue").textContent = data.elo || 'N/A';
+          });
 
         fetch('/leaderboard')
           .then(res => res.json())
