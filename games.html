@@ -93,7 +93,7 @@
       const username = localStorage.getItem("userId") || "anon";
       const startBtn = document.getElementById("startBtn");
       startBtn.disabled = true;
-      startBtn.textContent = "Searching for match...";
+      startBtn.textContent = "Generating Question...";
 
       try {
         // Match opponent
@@ -105,6 +105,9 @@
         const data = await response.json();
         const text = data.question || "[Error loading question]";
         document.getElementById("question").textContent = text;
+
+        // Hide the button once question is received
+        startBtn.style.display = "none";
 
         // Start timer animation
         document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
