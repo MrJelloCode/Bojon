@@ -83,7 +83,7 @@
       try {
         const response = await fetch(`/get-interview-question?username=${username}`);
         const data = await response.json();
-        const text = data.question || "[Error loading question]";
+        const text = data.question ;
         document.getElementById("question").textContent = text;
       } catch (error) {
         console.error("Failed to fetch question from backend:", error);
