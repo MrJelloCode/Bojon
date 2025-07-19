@@ -101,24 +101,18 @@
       startBtn.textContent = "Generating Question...";
 
       try {
-        // Match opponent
         const matchRes = await fetch(`/auto-match?username=${username}`);
         await matchRes.json();
 
-        // Get question
         const response = await fetch(`/get-interview-question?username=${username}`);
         const data = await response.json();
         const text = data.question || "[Error loading question]";
         document.getElementById("question").textContent = text;
 
-        // Hide the button once question is received
         startBtn.style.display = "none";
-
-        // Start timer animation
         document.getElementById("timerFill").style.animation = "fillTimer 20s linear forwards";
 
-        // Start recording
-        await startWebcamAndRecord();
+        await startWebcamAndRecord(username);
       } catch (error) {
         console.error("Match or question fetch failed:", error);
         document.getElementById("question").textContent = "[Error loading question]";
@@ -127,7 +121,7 @@
       }
     }
 
-    async function startWebcamAndRecord() {
+    async function startWebcamAndRecord(username) {
       try {
         const video = document.getElementById("preview");
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -140,7 +134,7 @@
         mediaRecorder.onstop = async () => {
           const blob = new Blob(chunks, { type: 'video/webm' });
           const formData = new FormData();
-          formData.append('video', blob, 'response.webm');
+          formData.append('video', blob, `${username}.webm`);
 
           try {
             const response = await fetch("/upload", {
@@ -157,7 +151,6 @@
         };
 
         mediaRecorder.start();
-
         setTimeout(() => {
           mediaRecorder.stop();
         }, 20000);
