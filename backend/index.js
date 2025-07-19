@@ -428,6 +428,29 @@ let waitingUser = null;
 let waitingRes = null;
 const matches = new Map(); // key: sorted usernames joined, value: { users: [...], question: ... }
 
+const analysisQueue = [];
+let analysisProcessing = false;
+
+async function processAnalysisQueue() {
+    if (analysisProcessing || analysisQueue.length === 0) return;
+    analysisProcessing = true;
+    const { mp4Path, res } = analysisQueue.shift();
+    try {
+        const { getInterviewScore } = await import('./twelvelabs.js');
+        const score = await getInterviewScore(mp4Path);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
+    } catch (apiErr) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+    }
+    analysisProcessing = false;
+    // Process next in queue
+    if (analysisQueue.length > 0) {
+        processAnalysisQueue();
+    }
+}
+
 const server = http.createServer((req, res) => {
     handleRequest(req, res);
 });
@@ -435,3 +458,4 @@ const server = http.createServer((req, res) => {
 server.listen(8080, () => {
     console.log("server running successfully");
 });
+console.log("TL_API_KEY from .env:", process.env.TL_API_KEY);
