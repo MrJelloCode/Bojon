@@ -49,11 +49,6 @@
       100% { box-shadow: 0 0 0px var(--accent); }
     }
 
-    @keyframes fillTimer {
-      from { width: 0%; }
-      to { width: 100%; }
-    }
-
     #timerBar {
       position: absolute;
       bottom: 0;
@@ -67,6 +62,11 @@
       height: 100%;
       width: 0;
       background-color: var(--accent);
+    }
+
+    @keyframes fillTimer {
+      from { width: 0%; }
+      to { width: 100%; }
     }
 
     #startBtn {
@@ -95,28 +95,44 @@
 
   <script>
     async function startMatchSequence() {
-      const username = localStorage.getItem("userId") || "anon";
+      const urlParams = new URLSearchParams(window.location.search);
+      const username = urlParams.get("username") || "anon";
       const startBtn = document.getElementById("startBtn");
+      const questionDiv = document.getElementById("question");
       startBtn.disabled = true;
       startBtn.textContent = "Waiting for opponent...";
+      questionDiv.textContent = `Opponent FOUND. Waiting for them to click start...`;
 
       try {
-        // Trigger match and wait for question to be ready
-        const matchRes = await fetch(`/auto-match?username=${username}`);
-        await matchRes.json();
+        const startTime = Date.now();
 
-        const questionRes = await fetch(`/get-interview-question?username=${username}`);
-        const questionData = await questionRes.json();
+        const pollUntilReady = async () => {
+          const res = await fetch(`/confirm-ready?username=${username}`);
+          const data = await res.json();
+          if (data.ready) {
+            startBtn.textContent = "Generating Question...";
+            const qRes = await fetch(`/get-interview-question?username=${username}`);
+            const qData = await qRes.json();
+            const text = qData.question || "[Error loading question]";
+            questionDiv.textContent = text;
+            startBtn.style.display = "none";
 
-        document.getElementById("question").textContent = questionData.question || "[Error loading question]";
-        startBtn.style.display = "none";
+            document.getElementById("timerFill").style.animation = "fillTimer 30s linear forwards";
+            document.getElementById("timerFill").style.width = "0%";
 
-        document.getElementById("timerFill").style.animation = "fillTimer 30s linear forwards";
-        await startWebcamAndRecord();
+            await startWebcamAndRecord();
+          } else if (Date.now() - startTime > 10000) {
+            alert("Match Cancelled: Both Users did not Join");
+            window.location.href = "/lobby.html";
+          } else {
+            setTimeout(pollUntilReady, 1000);
+          }
+        };
 
-      } catch (err) {
-        console.error("Error starting match:", err);
-        document.getElementById("question").textContent = "[Error loading question]";
+        pollUntilReady();
+      } catch (error) {
+        console.error("Match or question fetch failed:", error);
+        questionDiv.textContent = "[Error loading question]";
         startBtn.disabled = false;
         startBtn.textContent = "Start Match";
       }
@@ -152,10 +168,12 @@
         };
 
         mediaRecorder.start();
-        setTimeout(() => mediaRecorder.stop(), 30000);
+        setTimeout(() => {
+          mediaRecorder.stop();
+        }, 30000);
 
-      } catch (camErr) {
-        console.error("Webcam access failed:", camErr);
+      } catch (error) {
+        console.error("Webcam or recording failed:", error);
       }
     }
 
