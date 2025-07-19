@@ -44,33 +44,12 @@
       text-align: center;
     }
 
-    #userStats {
-      grid-area: stats;
-    }
-
-    #welcome {
-      grid-area: welcome;
-      justify-content: flex-end;
-    }
-
-    #findBattle {
-      grid-area: battle;
-      flex-direction: column;
-    }
-
-    #help {
-      grid-area: help;
-      flex-direction: column;
-    }
-
-    #leaderboard {
-      grid-area: leaderboard;
-      flex-direction: column;
-    }
-
-    #logout {
-      grid-area: logout;
-    }
+    #userStats { grid-area: stats; }
+    #welcome { grid-area: welcome; justify-content: flex-end; }
+    #findBattle { grid-area: battle; flex-direction: column; }
+    #help { grid-area: help; flex-direction: column; }
+    #leaderboard { grid-area: leaderboard; flex-direction: column; }
+    #logout { grid-area: logout; }
 
     button {
       background-color: var(--gold);
@@ -90,7 +69,7 @@
 </head>
 <body>
   <div id="userStats" class="box">USER STATS</div>
-  <div id="welcome" class="box">Welcome <span id="username">...</span>!</div>
+  <div id="welcome" class="box">Welcome <span id="username">loading...</span>!</div>
   <div id="findBattle" class="box">
     <button onclick="startMatchmaking()">Find a battle</button>
   </div>
@@ -102,7 +81,7 @@
     <ul id="topPlayers" style="list-style: none; padding: 0; color: var(--text-light);"></ul>
   </div>
   <div id="logout" class="box">
-    <button onclick="logout()">Thank you for playing! (Log out)</button>
+    <button id="logoutBtn">Thank you for playing! (Log out)</button>
   </div>
 
   <script>
@@ -112,25 +91,21 @@
       alert('Matchmaking initiated! (To be implemented)');
     }
 
-    async function logout() {
-      const auth0Client = await auth0;
-      auth0Client.logout({ returnTo: window.location.origin + '/index.html' });
-    }
-
     async function configureAuth0() {
       auth0 = await createAuth0Client({
         domain: 'bojon.ca.auth0.com',
         client_id: 'hxZOfc9vWXe0flKNTKaTXXPOJGzwpIj1',
-        cacheLocation: 'localstorage',
-        useRefreshTokens: true
+        cacheLocation: 'localstorage'
       });
 
-      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
+      // Handle Auth0 login redirect
+      const query = window.location.search;
+      if (query.includes("code=") && query.includes("state=")) {
         try {
           await auth0.handleRedirectCallback();
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (e) {
-          console.error("Error handling redirect callback:", e);
+          window.history.replaceState({}, document.title, "/lobby.html");
+        } catch (err) {
+          console.error("Redirect callback error", err);
         }
       }
 
@@ -138,8 +113,7 @@
 
       if (isAuthenticated) {
         const user = await auth0.getUser();
-        const firstName = user.given_name || (user.name ? user.name.split(" ")[0] : user.nickname || "User");
-        document.getElementById('username').textContent = firstName;
+        document.getElementById('username').textContent = user.nickname || user.name;
 
         fetch('/api/login', {
           method: 'POST',
@@ -161,6 +135,10 @@
       } else {
         await auth0.loginWithRedirect({ redirect_uri: window.location.href });
       }
+
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        auth0.logout({ returnTo: window.location.origin + "/index.html" });
+      });
     }
 
     window.onload = configureAuth0;
