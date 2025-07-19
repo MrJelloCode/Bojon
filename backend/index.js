@@ -352,56 +352,9 @@ async function handleRequest(req, res) {
                         }
                         return;
                     }
-
-                    // Send MP4 to Twelve Labs API
-                    try {
-                        const { TwelveLabs } = await import("twelvelabs-js");
-                        const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
-
-                        // Create index (or use an existing one)
-                        const index = await client.index.create({
-                            name: `index-${uuidv4()}`,
-                            models: [
-                                { name: "marengo2.7", options: ["visual", "audio"] }
-                            ]
-                        });
-
-                        // Upload the MP4 file
-                        const task = await client.task.create({
-                            indexId: index.id,
-                            file: fs.createReadStream(mp4Path)
-                        });
-
-                        await task.waitForDone(5000, (task) => {
-                            console.log(`  Status=${task.status}`);
-                        });
-
-                        if (task.status !== "ready") {
-                          throw new Error(`Indexing failed with status ${task.status}`);
-                        }
-
-                        // Example search prompt
-                        const searchResults = await client.search.query({
-                            indexId: index.id,
-                            queryText: "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.",
-                            options: ["visual", "audio"]
-                        });
-
-                        try {
-                          const { getInterviewScore } = await import('./twelvelabs.js');
-                          const score = await getInterviewScore(mp4Path);
-                          res.writeHead(200, { "Content-Type": "application/json" });
-                          res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
-                        } catch (apiErr) {
-                          res.writeHead(500, { "Content-Type": "application/json" });
-                          res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
-                        }
-                    } catch (apiErr) {
-                        if (!res.headersSent) {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
-                        }
-                    }
+                    // Queue the analysis request
+                    analysisQueue.push({ mp4Path, res });
+                    processAnalysisQueue();
                 });
             });
 
@@ -428,6 +381,7 @@ let waitingUser = null;
 let waitingRes = null;
 const matches = new Map(); // key: sorted usernames joined, value: { users: [...], question: ... }
 
+// Interview analysis queue
 const analysisQueue = [];
 let analysisProcessing = false;
 
