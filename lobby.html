@@ -146,13 +146,27 @@
         document.getElementById('username').textContent =
           '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
 
-        fetch('/api/login', {
+        // Fetch ELO for the user
+        const username = encodeURIComponent(user.nickname || user.name || user.email || 'Guest');
+        fetch(`http://127.0.0.1:8080/get-elo?username=${username}`)
+          .then(res => res.json())
+          .then(data => {
+            window.currentElo = data.elo;
+            // Optionally, update the UI with ELO
+            document.getElementById('userStats').textContent = `ELO: ${data.elo}`;
+          })
+          .catch(err => {
+            console.error('Failed to fetch ELO:', err);
+            window.currentElo = null;
+          });
+
+        fetch('/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user })
         });
 
-        fetch('/api/leaderboard')
+        fetch('/leaderboard')
           .then(res => res.json())
           .then(data => {
             const ul = document.getElementById('topPlayers');
