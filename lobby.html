@@ -185,7 +185,7 @@
       if (query.includes("code=") && query.includes("state=")) {
         try {
           await auth0.handleRedirectCallback();
-          window.history.replaceState({}, document.title, "/lobby.html");
+          window.history.replaceState({}, document.title, "https://humble-marmoset-natural.ngrok-free.app/lobby.html");
         } catch (err) {
           console.error("Redirect callback error", err);
         }
@@ -207,7 +207,7 @@
             document.getElementById('userStats').textContent = `ELO: ${data.elo}`;
 
             // Only send login after ELO is fetched
-            fetch('/login', {
+            fetch('https://humble-marmoset-natural.ngrok-free.app/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ user, elo: window.currentElo })
@@ -222,7 +222,7 @@
             window.currentElo = null;
           });
 
-        fetch('/leaderboard')
+        fetch('https://humble-marmoset-natural.ngrok-free.app/leaderboard')
           .then(res => res.json())
           .then(data => {
             const ul = document.getElementById('topPlayers');
@@ -238,7 +238,7 @@
       }
 
       document.getElementById("logoutBtn").addEventListener("click", () => {
-        auth0.logout({ returnTo: window.location.origin + "/index.html" });
+        auth0.logout({ returnTo: window.location.origin + "https://humble-marmoset-natural.ngrok-free.app/index.html" });
       });
     }
 
