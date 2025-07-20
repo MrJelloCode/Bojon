@@ -30,13 +30,13 @@ async function getOrCreateIndex(name = 'interview-clip-index') {
 }
 
 // Main script
-async function main(videoFileName = 'sample-video.webm') {
+async function main(videoFileName = 'sample-video.webm', username) {
   try {
     const videoPath = path.resolve('./videos', videoFileName);
 
     await fs.access(videoPath);
 
-    const indexId = await getOrCreateIndex();
+    const indexId = await getOrCreateIndex("index-interview-clip-" + username);
 
     console.log(`📤 Uploading video: ${videoPath}`);
     const task = await client.task.create({ indexId, file: videoPath });

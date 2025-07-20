@@ -353,7 +353,8 @@ async function handleRequest(req, res) {
                         return;
                     }
 
-                    // Send MP4 to Twelve Labs API
+                    let score = null;
+                    let scoreError = null;
                     try {
                         const { TwelveLabs } = await import("twelvelabs-js");
                         const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
@@ -377,29 +378,41 @@ async function handleRequest(req, res) {
                         });
 
                         if (task.status !== "ready") {
-                          throw new Error(`Indexing failed with status ${task.status}`);
+                            throw new Error(`Indexing failed with status ${task.status}`);
                         }
 
                         // Example search prompt
-                        const searchResults = await client.search.query({
+                        await client.search.query({
                             indexId: index.id,
                             queryText: "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.",
                             options: ["visual", "audio"]
                         });
 
+                        // Always try to get the score, even if searchResults is not used
                         try {
-                          const { getInterviewScore } = await import('./twelvelabs.js');
-                          const score = await getInterviewScore(mp4Path);
-                          res.writeHead(200, { "Content-Type": "application/json" });
-                          res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
+                            const { getInterviewScore } = await import('./twelvelabs.js');
+                            score = await getInterviewScore(mp4Path, safeUsername);
+                            console.log("Interview score:", score);
                         } catch (apiErr) {
-                          res.writeHead(500, { "Content-Type": "application/json" });
-                          res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+                            scoreError = apiErr;
+                            console.error("getInterviewScore error:", apiErr);
                         }
                     } catch (apiErr) {
                         if (!res.headersSent) {
                             res.writeHead(500, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
+                        }
+                        return;
+                    }
+
+                    // Respond with score if available, otherwise error
+                    if (!res.headersSent) {
+                        if (score !== null && score !== undefined) {
+                            res.writeHead(200, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
+                        } else {
+                            res.writeHead(500, { "Content-Type": "application/json" });
+                            res.end(JSON.stringify({ error: "Failed to get interview score", details: scoreError ? scoreError.message : "Unknown error" }));
                         }
                     }
                 });

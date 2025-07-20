@@ -212,11 +212,18 @@
         
         const user = await auth0.getUser();
 
+        console.dir(user)
+
         const actualUsername = user.nickname || user.name || user.email || 'Guest';
+
+        console.log("nickname:", user.nickname)
+
         document.getElementById('username').textContent = '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
 
         // Store userId in localStorage
         localStorage.setItem("userId", actualUsername);
+
+        console.log("actualUsername:", actualUsername)
 
         // Fetch ELO for the user
         const username = encodeURIComponent(actualUsername);
