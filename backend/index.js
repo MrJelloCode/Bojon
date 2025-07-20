@@ -11,7 +11,7 @@ const fetch = require("node-fetch");
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
-//
+
 // Sucessful Ribbon API call https://docs.ribbon.ai/reference/get_v1-ping-1
 async function testRibbon() {
   try {
