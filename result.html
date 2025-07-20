@@ -1,102 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Results</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #000000;
-      color: #FFD700;
-      font-family: 'Orbitron', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      padding-top: 80px;
-      text-align: center;
+window.onload = async () => {
+  try {
+    // Call your backend to get game results
+    const res = await fetch('/get-results');
+    const data = await res.json();
+
+    console.log("Received result:", data);
+
+    const { yourScore, opponentScore, yourElo, opponentElo } = data;
+
+    // Determine win/loss/draw
+    let resultText = '';
+    let actual = 0;
+    if (yourScore > opponentScore) {
+      resultText = "🎉 You Win!";
+      actual = 1;
+    } else if (yourScore < opponentScore) {
+      resultText = "😞 You Lose!";
+      actual = 0;
+    } else {
+      resultText = "🤝 It's a Draw!";
+      actual = 0.5;
     }
 
-    #loading {
-      display: block;
-    }
+    // Calculate ELO
+    const K = 32;
+    const expected = 1 / (1 + Math.pow(10, (opponentElo - yourElo) / 400));
+    const newElo = Math.round(yourElo + K * (actual - expected));
+    const eloChange = newElo - yourElo;
 
-    #results-container {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      opacity: 0;
-      animation: fadeIn 1.2s ease-out forwards;
-    }
+    // Inject data into HTML
+    document.getElementById("result-header").textContent = resultText;
+    document.getElementById("your-score").textContent = `Your Score: ${yourScore}`;
+    document.getElementById("opponent-score").textContent = `Opponent's Score: ${opponentScore}`;
+    document.getElementById("elo-change").textContent = `New Elo: ${newElo} (${eloChange >= 0 ? '+' : ''}${eloChange})`;
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    // Hide loader, show result
+    document.getElementById("loading").style.display = "none";
+    const resultContainer = document.getElementById("results-container");
+    resultContainer.style.display = "flex";
 
-    .result-text {
-      font-size: 2.4rem;
-      margin-bottom: 30px;
-    }
-
-    .score-box {
-      font-size: 1.6rem;
-      margin: 10px 0;
-    }
-
-    #elo-change {
-      font-size: 1.2rem;
-      color: #AAAAAA;
-      margin-top: 20px;
-    }
-
-    button {
-      margin-top: 40px;
-      padding: 12px 30px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 16px;
-      background-color: #FFD700;
-      color: #000000;
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 0 12px #FFD700;
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    button:hover {
-      background-color: #E6C200;
-      box-shadow: 0 0 18px #FFD700;
-    }
-
-    img {
-      width: 130px;
-      height: 130px;
-    }
-
-    #loading p {
-      color: #AAAAAA;
-    }
-  </style>
-</head>
-<body>
-  <div id="loading">
-    <img src="3dgifmaker55895.gif" alt="Loading..." />
-    <p>Analyzing your response...</p>
-  </div>
-
-  <div id="results-container">
-    <div id="result-header" class="result-text"></div>
-    <div class="score-box" id="your-score"></div>
-    <div class="score-box" id="opponent-score"></div>
-    <div id="elo-change"></div>
-    <button onclick="window.location.href='/lobby.html'">Back to Lobby</button>
-  </div>
-
-  <script src="result.js"></script>
-</body>
-</html>
+  } catch (err) {
+    console.error("Error fetching results:", err);
+    document.getElementById("loading").innerHTML = "<p style='color: red;'>Failed to load results. Try again later.</p>";
+  }
+};
