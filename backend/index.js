@@ -95,6 +95,48 @@ async function getGeminiResponse(prompt) {
 }
 
 async function handleRequest(req, res) {
+
+
+    // GET /get-results?username=...
+if (req.method === "GET" && pathname === "/get-results") {
+    const username = parsedUrl.query.username;
+
+    if (!username) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing username" }));
+        return;
+    }
+
+    await client.connect();
+    const db = client.db("bojonDB");
+    const collection = db.collection("users");
+
+    const user = await collection.findOne({ username });
+    if (!user) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "User not found" }));
+        return;
+    }
+
+    const opponent = await collection.findOne({ username: user.lastOpponent });
+    if (!opponent) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Opponent not found" }));
+        return;
+    }
+
+    const payload = {
+        yourScore: user.lastScore || 0,
+        opponentScore: opponent.lastScore || 0,
+        yourElo: user.elo || 500,
+        opponentElo: opponent.elo || 500
+    };
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(payload));
+    return;
+}
+
     // Add CORS headers for all responses
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -222,6 +264,14 @@ async function handleRequest(req, res) {
                 res.end(JSON.stringify({ error: "Missing username" }));
                 return;
             }
+
+            await client.connect();
+            const db = client.db("bojonDB");
+            const collection = db.collection("users");
+
+            await collection.updateOne({ username: pair[0] }, { $set: { lastOpponent: pair[1] } });
+            await collection.updateOne({ username: pair[1] }, { $set: { lastOpponent: pair[0] } });
+
 
             // If someone is already waiting, pair them
             if (waitingUser && waitingRes) {
@@ -408,6 +458,15 @@ async function handleRequest(req, res) {
                     // Respond with score if available, otherwise error
                     if (!res.headersSent) {
                         if (score !== null && score !== undefined) {
+                            await client.connect();
+                            const db = client.db("bojonDB");
+                            const collection = db.collection("users");
+
+                            await collection.updateOne(
+                            { username: safeUsername },
+                            { $set: { lastScore: score } }
+                    );
+
                             res.writeHead(200, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
                         } else {
