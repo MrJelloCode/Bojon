@@ -32,15 +32,18 @@
     }
 
     #preview {
-      width: 100vw;
-      height: calc(100vh - 180px);
-      transform: scale(0.75);
-      object-fit: contain;
-      display: block;
-      margin: 0 auto;
+      position: fixed;
+      bottom: 2vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 25vw;
+      height: 20vh;
+      object-fit: cover;
       border: 3px solid var(--accent);
       border-radius: 12px;
       animation: pulse 2s ease-in-out infinite;
+      z-index: 11;
+      background: #222;
     }
 
     @keyframes pulse {
@@ -80,17 +83,29 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      transform: scale(0.8);
+      z-index: 9999;
     }
 
     #startBtn:disabled {
       background-color: #888;
       cursor: not-allowed;
     }
+     #interviewFrame {
+      position: fixed;
+      top: 8rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80vw;
+      height: 55vh;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div id="question">Click "Start Match" to begin</div>
   <button id="startBtn">Start Match</button>
+  <iframe id="interviewFrame" allow="microphone"></iframe>
   <video id="preview" autoplay muted playsinline></video>
   <div id="timerBar"><div id="timerFill"></div></div>
 
@@ -134,6 +149,76 @@
       }
     }
 
+    async function getMedia() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 360 },
+        frameRate: { ideal: 20, max: 20 }
+      },
+      audio: true
+    });
+
+    // Send the audio stream to iframe
+    const iframe = document.getElementById("child-iframe");
+
+    // For security, specify iframe's origin
+    const targetOrigin = "http://localhost:8080"; // Change to your iframe's origin
+
+    // You can't directly post MediaStream via postMessage.
+    // You need to send data chunks or use WebRTC for actual stream sharing.
+    // For simple example, let's send a message indicating mic is ready:
+
+    iframe.contentWindow.postMessage("mic_ready", targetOrigin);
+
+    // Alternatively, process audio here and send processed data chunks.
+
+  } catch (err) {
+    console.error("Error accessing media devices:", err);
+  }
+}
+
+getMedia();
+
+
+async function startSession() {
+      const username = localStorage.getItem("userId") || "anon";
+      const questionDiv = document.getElementById("question");
+      const startBtn = document.getElementById("startBtn");
+      startBtn.disabled = true;
+      startBtn.textContent = "Loading...";
+
+      try {
+        // Fetch the interview question immediately
+        const resp = await fetch(`/get-interview-question?username=${username}`);
+        const { question } = await resp.json();
+        questionDiv.textContent = question || "[Error loading question]";
+        startBtn.style.display = 'none';
+
+        // Show interview iframe
+        const frameData = await fetch('/get-interview-link');
+        const { interview_link } = await frameData.json();
+        if (interview_link) {
+          const frame = document.getElementById('interviewFrame');
+          frame.src = interview_link;
+          frame.style.display = 'block';
+        }
+
+        // Start webcam and timer together
+        document.getElementById('timerFill').style.animation = 'fillTimer 20s linear forwards';
+        startWebcamAndRecord();
+
+      } catch (err) {
+        console.error(err);
+        questionDiv.textContent = "[Error starting session]";
+        startBtn.disabled = false;
+        startBtn.textContent = "Start Match";
+      }
+      startMatchSequence();
+    }
+
+    
     async function startWebcamAndRecord() {
       try {
         const video = document.getElementById("preview");
@@ -172,6 +257,20 @@
       }
     }
 
+    async function checkStatus() {
+            try {
+                const res = await fetch("http://localhost:8080/status");
+                const data = await res.json();
+                document.getElementById("status").innerText = "Status: " + data.status;
+
+                if (data.status === "completed" || data.status === "completed") {
+                    console.log("Interview is complete! Redirecting...");
+                    window.location.href = "lobby.html";
+                }
+            } catch (err) {
+                console.error("Fetch error:", err);
+            }
+          }
     document.getElementById("startBtn").addEventListener("click", startMatchSequence);
   </script>
 </body>
