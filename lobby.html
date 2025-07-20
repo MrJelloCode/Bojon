@@ -168,6 +168,25 @@
   </div>
 
   <script>
+    
+fetch('/leaderboard')
+  .then(res => res.json())
+  .then(data => {
+    const ul = document.getElementById('topPlayers');
+    ul.innerHTML = '';
+    data.forEach((player, i) => {
+      const li = document.createElement('li');
+      li.textContent = `${i + 1}. ${player.name} - ${player.elo}`;
+      li.style.marginBottom = '0.5rem';
+      ul.appendChild(li);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to fetch leaderboard:', err);
+    document.getElementById('topPlayers').innerHTML = '<li>Failed to load leaderboard</li>';
+  });
+
+  
     let auth0 = null;
 
     async function startMatchmaking() {
