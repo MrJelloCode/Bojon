@@ -3,7 +3,7 @@ const { MongoClient } = require("mongodb");
 const url = require("url");
 const fs = require("fs");
 const path = require("path");
-const { v4: uuidv4 } = require('uuid');
+//const { v4: uuidv4 } = require('uuid');
 
 require("dotenv").config();
 const fetch = require("node-fetch");
@@ -327,35 +327,36 @@ async function handleRequest(req, res) {
             return;
         }
 
-        // GET /leaderboard
-if (req.method === "GET" && pathname === "/leaderboard") {
-    try {
-        await client.connect();
-        const db = client.db("bojonDB");
-        const collection = db.collection("users");
+// GET /leaderboard
+// GET /leaderboard
+        if (req.method === "GET" && pathname === "/leaderboard") {
+            try {
+                await client.connect();
+                const db = client.db("bojonDB");
+                const collection = db.collection("users");
 
-        // Fetch all users, sorted by elo descending, limit to top 10
-        const topUsers = await collection
-            .find({})
-            .sort({ elo: -1 })
-            .limit(10)
-            .toArray();
+                const topUsers = await collection
+                    .find({})
+                    .sort({ elo: -1 })
+                    .limit(10)
+                    .toArray();
 
-        // Keep first 5 characters of each username
-        const leaderboard = topUsers.map(user => ({
-            name: user.username ? user.username.slice(0, 5) : 'Guest',
-            elo: user.elo != null ? user.elo : 500
-        }));
+                const leaderboard = topUsers.map(user => ({
+                    name: user.username ? user.username.slice(0, 5) : 'Guest',
+                    elo: user.elo != null ? user.elo : 500
+                }));
 
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(leaderboard));
-    } catch (error) {
-        console.error("Leaderboard error:", error);
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
-    }
-    return;
-}
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify(leaderboard));
+            } catch (error) {
+                console.error("Leaderboard error:", error);
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
+            }
+            return;
+        }
+
+        // POST /upload-and-analyze (your existing code continues here)
 
         // POST /upload-and-analyze
         if (req.method === "POST" && pathname === "/upload-and-analyze") {
