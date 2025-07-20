@@ -1,46 +1,159 @@
-window.onload = async () => {
-  try {
-    // Call your backend to get game results
-    const res = await fetch('/get-results');
-    const data = await res.json();
-
-    console.log("Received result:", data);
-
-    const { yourScore, opponentScore, yourElo, opponentElo } = data;
-
-    // Determine win/loss/draw
-    let resultText = '';
-    let actual = 0;
-    if (yourScore > opponentScore) {
-      resultText = "🎉 You Win!";
-      actual = 1;
-    } else if (yourScore < opponentScore) {
-      resultText = "😞 You Lose!";
-      actual = 0;
-    } else {
-      resultText = "🤝 It's a Draw!";
-      actual = 0.5;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Results</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Orbitron', sans-serif;
+      background-color: #0D0D0D;
+      color: gold;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
 
-    // Calculate ELO
-    const K = 32;
-    const expected = 1 / (1 + Math.pow(10, (opponentElo - yourElo) / 400));
-    const newElo = Math.round(yourElo + K * (actual - expected));
-    const eloChange = newElo - yourElo;
+    #loading {
+      display: block;
+      text-align: center;
+    }
 
-    // Inject data into HTML
-    document.getElementById("result-header").textContent = resultText;
-    document.getElementById("your-score").textContent = `Your Score: ${yourScore}`;
-    document.getElementById("opponent-score").textContent = `Opponent's Score: ${opponentScore}`;
-    document.getElementById("elo-change").textContent = `New Elo: ${newElo} (${eloChange >= 0 ? '+' : ''}${eloChange})`;
+    #results-container {
+      display: none;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      margin-bottom: 40px;
+      animation: fadeIn 2s ease-in-out;
+    }
 
-    // Hide loader, show result
-    document.getElementById("loading").style.display = "none";
-    const resultContainer = document.getElementById("results-container");
-    resultContainer.style.display = "flex";
+    .panel {
+      border: 3px solid gold;
+      border-radius: 20px;
+      padding: 30px;
+      width: 300px;
+      min-height: 250px;
+      background-color: #1A1A1A;
+      box-shadow: 0 0 20px gold;
+    }
 
-  } catch (err) {
-    console.error("Error fetching results:", err);
-    document.getElementById("loading").innerHTML = "<p style='color: red;'>Failed to load results. Try again later.</p>";
-  }
-};
+    .panel h2, .panel p {
+      text-align: center;
+    }
+
+    #result-header {
+      font-size: 1.6em;
+      margin-bottom: 10px;
+      text-align: center;
+      color: gold;
+    }
+
+    #return-btn {
+      padding: 10px 30px;
+      background-color: gold;
+      border: none;
+      color: black;
+      font-size: 1.1em;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #return-btn:hover {
+      background-color: #FFD700;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    img.loader {
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div id="loading">
+    <img src="loading.gif" alt="Loading..." class="loader">
+    <p>Loading results...</p>
+  </div>
+
+  <div id="result-header"></div>
+
+  <div id="results-container">
+    <div class="panel">
+      <h2>BREAKDOWN OF STATS</h2>
+      <p>BY: CORRECTNESS,<br>CLARITY, CONFIDENCE,<br>ORGANIZED THOUGHT</p>
+      <p id="your-score">Your Score: </p>
+      <p id="opponent-score">Opponent's Score: </p>
+      <p><strong>TOTAL % = <span id="total-percent">__</span></strong></p>
+    </div>
+
+    <div class="panel">
+      <h2>OLD ELO</h2>
+      <p>||<br>||<br>||<br>V</p>
+      <p id="elo-change">New Elo:</p>
+    </div>
+  </div>
+
+  <button id="return-btn" onclick="window.location.href='lobby.html'">RETURN TO LOBBY</button>
+
+  <script>
+    window.onload = async () => {
+      try {
+        const res = await fetch('/get-results');
+        const data = await res.json();
+
+        console.log("Received result:", data);
+
+        const { yourScore, opponentScore, yourElo, opponentElo } = data;
+
+        // Win/loss/draw logic
+        let resultText = '';
+        let actual = 0;
+        if (yourScore > opponentScore) {
+          resultText = "🎉 You Win!";
+          actual = 1;
+        } else if (yourScore < opponentScore) {
+          resultText = "😞 You Lose!";
+          actual = 0;
+        } else {
+          resultText = "🤝 It's a Draw!";
+          actual = 0.5;
+        }
+
+        // ELO calculation
+        const K = 32;
+        const expected = 1 / (1 + Math.pow(10, (opponentElo - yourElo) / 400));
+        const newElo = Math.round(yourElo + K * (actual - expected));
+        const eloChange = newElo - yourElo;
+
+        // Inject result data
+        document.getElementById("result-header").textContent = resultText;
+        document.getElementById("your-score").textContent = `Your Score: ${yourScore}`;
+        document.getElementById("opponent-score").textContent = `Opponent's Score: ${opponentScore}`;
+        document.getElementById("elo-change").textContent = `New Elo: ${newElo} (${eloChange >= 0 ? '+' : ''}${eloChange})`;
+        document.getElementById("total-percent").textContent = yourScore + "%";
+
+        // Fade-in reveal
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("results-container").style.display = "flex";
+
+      } catch (err) {
+        console.error("Error fetching results:", err);
+        document.getElementById("loading").innerHTML = "<p style='color: red;'>Failed to load results. Try again later.</p>";
+      }
+    };
+  </script>
+</body>
+</html>
