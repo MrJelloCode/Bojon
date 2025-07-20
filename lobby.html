@@ -212,6 +212,8 @@
         
         const user = await auth0.getUser();
 
+        console.log("User authenticated:", user);
+
         const actualUsername = user.nickname || user.name || user.email || 'Guest';
         document.getElementById('username').textContent = '\u00A0' + (user.nickname || user.name || user.email || 'Guest');
 
@@ -257,6 +259,7 @@
         await auth0.loginWithRedirect({ redirect_uri: window.location.href });
       }
 
+      //TODO: Add callback url to auth0 dashboard
       document.getElementById("logoutBtn").addEventListener("click", () => {
         auth0.logout({ returnTo: "https://humble-marmoset-natural.ngrok-free.app/index.html" });
       });
