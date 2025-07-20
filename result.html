@@ -111,12 +111,19 @@
   <script>
     window.onload = async () => {
       try {
-        const res = await fetch('/upload-and-analyze');
+        const username = localStorage.getItem("username");
+        if (!username) throw new Error("Username not found");
+
+        const res = await fetch(`/get-results?username=${encodeURIComponent(username)}`);
         const data = await res.json();
 
         console.log("Received result:", data);
 
         const { yourScore, opponentScore, yourElo, opponentElo } = data;
+
+        if (yourScore == null || opponentScore == null || yourElo == null || opponentElo == null) {
+          throw new Error("Incomplete result data");
+        }
 
         // Win/loss/draw logic
         let resultText = '';
