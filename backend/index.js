@@ -13,65 +13,82 @@ const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 //
 // Sucessful Ribbon API call https://docs.ribbon.ai/reference/get_v1-ping-1
-async function testRibbon() {
-  try {
-    const ribbonZogq = await import('@api/ribbon-zogq');
+async function createInterview(geminiQuestion) {
+    const apiKey = process.env.RIBBON_API_KEY; // Make sure this is set in your env
 
-    ribbonZogq.default.auth(process.env.RIBBON_API_KEY); // Your exposed token
-    const ping = await ribbonZogq.default.getV1Ping();
-    console.log("Ribbon ping:", ping);
-  } catch (err) {
-    console.error("Ribbon error:", err);
-  }
-}
-testRibbon();
-//End Ribbon API call
-
-//Twelvelabs API 
-async function testTwelveLabs() {
-  try {
-    const { TwelveLabs } = await import("twelvelabs-js");
-
-    const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
-
-    const index = await client.index.create({
-      name: `index-${uuidv4()}`,
-      models: [
-        { name: "marengo2.7", options: ["visual", "audio"] }
-      ]
-    });
-    console.log(`Created index: id=${index.id} name=${index.name}`);
-
-    const task = await client.task.create({
-      indexId: index.id,
-      url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4" // replace with your video URL
-    });
-    console.log(`Created task: id=${task.id}`);
-
-    await task.waitForDone(5000, (task) => {
-      console.log(`  Status=${task.status}`);
+    // STEP 1: Create Interview Flow
+    const flowResponse = await fetch("https://app.ribbon.ai/be-api/v1/interview-flows", {
+        method: 'POST',
+        headers: {
+            'accept': 'application/json',
+            'authorization': `Bearer ${apiKey}`,
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "org_name": "Hack the 6ix",
+            "title": "Hacker",
+            "additional_info": "30 second MAX interview . Wrap it up at 30 Seconds. DO NOT GO OVER 30 SECONDS. DO NOT ASK FOLLOW UP QUESTIONS. NO FOLLOW UP QUESTIONS. ONLY 1 QUESTION ASKED.",
+            "questions": [
+                `${geminiQuestion} (((((Ribbon The interview needs to be EXTREMELY short no longer than 30 seconds. Do not ask follow ups. NO FOLLOW UP QUESTIONS. NO FOLLOW UP QUESTIONS. NO FOLLOW UP QUESTIONS. NO FOLLOW UP QUESTIONS. NO FOLLOW UP QUESTIONS.)))))`
+            ]
+        })
     });
 
-    if (task.status !== "ready") {
-      throw new Error(`Indexing failed with status ${task.status}`);
+    const flowResult = await flowResponse.json();
+    console.log("Interview Flow Result:", flowResult);
+
+    // STEP 2: Create Interview using the interview_flow_id
+    const interviewFlowId = flowResult.interview_flow_id;
+    if (!interviewFlowId) {
+        console.error("Failed to get interview_flow_id from flowResult");
+        return;
     }
 
-    console.log(`Upload complete. The unique identifier of your video is ${task.videoId}`);
-
-    const searchResults = await client.search.query({
-      indexId: index.id,
-      queryText: "YOUR_QUERY",
-      options: ["visual", "audio"]
+    const interviewResponse = await fetch("https://app.ribbon.ai/be-api/v1/interviews", {
+        method: 'POST',
+        headers: {
+            'accept': 'application/json',
+            'authorization': `Bearer ${apiKey}`,
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({ "interview_flow_id": interviewFlowId })
     });
+    const interviewResult = await interviewResponse.json();
+    console.log("Interview Result:", interviewResult);
 
-    for (const clip of searchResults.data) {
-      console.log(`video_id=${clip.videoId} score=${clip.score} start=${clip.start} end=${clip.end} confidence=${clip.confidence}`);
+    // STEP 3: Poll the interview endpoint every 2 seconds
+    const interviewId = interviewResult.interview_id || interviewResult.id;
+    if (!interviewId) {
+        console.error("Failed to get interview_id from interviewResult");
+        return;
     }
 
-  } catch (err) {
-    console.error("Twelvelabs error:", err);
-  }
+    const pollUrl = `https://app.ribbon.ai/be-api/v1/interviews/${interviewId}`;
+    const pollOptions = {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+            'authorization': `Bearer ${apiKey}`
+        }
+    };
+
+    console.log(`⏱️ Starting to poll ${pollUrl} every 2 seconds…`);
+    setInterval(async () => {
+        try {
+            const res = await fetch(pollUrl, pollOptions);
+            //const { status } = await res.json();
+            const data = await res.json();
+            console.log("Polling result:", data);
+            interviewStatus = data.status;
+            //console.log("API Status", status);
+        } catch (err) {
+            console.error("Polling error:", err);
+        }
+    }, 2000);
+
+    return interviewResult;
 }
+
 
 // testTwelveLabs();
 //Twelvelabs API  
@@ -169,6 +186,34 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "GET" && pathname === "/leaderboard") {
+  try {
+    await client.connect();
+    const db = client.db("bojonDB");
+    const collection = db.collection("users");
+
+    // Fetch all users, sorted by elo descending
+    const topUsers = await collection
+      .find({})
+      .sort({ elo: -1 })
+      .toArray();
+
+    // Keep first 5 characters of each username
+    const leaderboard = topUsers.map(user => ({
+      name: user.username ? user.username.slice(0, 5) : 'Guest',
+      elo: user.elo != null ? user.elo : 500
+    }));
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(leaderboard));
+  } catch (error) {
+    console.error("Leaderboard error:", error);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
+  }
+  return;
+}
+
         // POST /login
         if (req.method === "POST" && pathname === "/login") {
             let body = "";
@@ -214,6 +259,60 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "GET" && pathname === "/leaderboard") {
+            try {
+                await client.connect();
+                const db = client.db("bojonDB");
+                const collection = db.collection("users");
+
+                console.log("Fetching leaderboard data...");
+
+                // Get all users, sort by ELO descending (highest first), limit to top 10
+                const topUsers = await collection
+                    .find({})
+                    .sort({ elo: -1 })
+                    .limit(10)
+                    .toArray();
+
+                console.log("Raw MongoDB data:", topUsers);
+
+                // Transform usernames to show only first 5 characters
+                const leaderboard = topUsers.map(user => ({
+                    name: user.username ? user.username.substring(0, 5) : 'Guest',
+                    elo: user.elo || 500
+                }));
+
+                console.log("Transformed leaderboard:", leaderboard);
+
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify(leaderboard));
+            } catch (error) {
+                console.error("Leaderboard error:", error);
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
+            }
+            return;
+        }
+         if (req.method === "GET" && pathname === "/get-interview-link") {
+            // You may want to store interview_link somewhere accessible (e.g., in memory or DB)
+            // For demo, let's call createInterview and return the link directly
+            const interviewResult = await createInterview();
+            if (interviewResult && interviewResult.interview_link) {
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ interview_link: interviewResult.interview_link }));
+            } else {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Failed to get interview link" }));
+            }
+            return;
+        }
+
+         if (req.method === "GET" && pathname === "/status") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: interviewStatus }));
+        return;
+    }
+    
         // GET /auto-match?username=...
         if (req.method === "GET" && pathname.startsWith("/auto-match")) {
             const username = parsedUrl.query.username;
