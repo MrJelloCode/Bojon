@@ -91,7 +91,8 @@
       background-color: #888;
       cursor: not-allowed;
     }
-     #interviewFrame {
+
+        #interviewFrame {
       position: fixed;
       top: 8rem;
       left: 50%;
@@ -100,6 +101,8 @@
       height: 55vh;
       display: none;
     }
+
+
   </style>
 </head>
 <body>
@@ -113,7 +116,6 @@
     async function startMatchSequence() {
       const urlParams = new URLSearchParams(window.location.search);
       const username = urlParams.get("username") || "anon";
-
       const startBtn = document.getElementById("startBtn");
       const questionDiv = document.getElementById("question");
       startBtn.disabled = true;
@@ -148,8 +150,7 @@
         startBtn.textContent = "Start Match";
       }
     }
-
-    async function getMedia() {
+async function getMedia() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -181,8 +182,7 @@
 
 getMedia();
 
-
-async function startSession() {
+    async function startSession() {
       const username = localStorage.getItem("userId") || "anon";
       const questionDiv = document.getElementById("question");
       const startBtn = document.getElementById("startBtn");
@@ -217,8 +217,6 @@ async function startSession() {
       }
       startMatchSequence();
     }
-
-    
     async function startWebcamAndRecord() {
       try {
         const video = document.getElementById("preview");
@@ -256,8 +254,7 @@ async function startSession() {
         console.error("Webcam or recording failed:", error);
       }
     }
-
-    async function checkStatus() {
+       async function checkStatus() {
             try {
                 const res = await fetch("http://localhost:8080/status");
                 const data = await res.json();
@@ -270,8 +267,15 @@ async function startSession() {
             } catch (err) {
                 console.error("Fetch error:", err);
             }
-          }
-    document.getElementById("startBtn").addEventListener("click", startMatchSequence);
+        }
+        // Initial call
+        checkStatus();
+        // Poll every 2 seconds
+        setInterval(checkStatus, 1000);
+        
+        document.getElementById('startBtn').addEventListener('click', startSession);
+
+   // document.getElementById("startBtn").addEventListener("click", startMatchSequence);
   </script>
 </body>
 </html>
