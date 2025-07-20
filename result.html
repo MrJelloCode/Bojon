@@ -111,7 +111,7 @@
   <script>
     window.onload = async function () {
       try {
-        const username = localStorage.getItem("username");
+        const username = localStorage.getItem("userId") || localStorage.getItem("username") || "anon";
         if (!username) throw new Error("Username not found");
 
         const res = await fetch(`/get-results?username=${encodeURIComponent(username)}`);
