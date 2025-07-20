@@ -169,35 +169,6 @@ async function handleRequest(req, res) {
             return;
         }
 
- if (req.method === "GET" && pathname === "/leaderboard") {
-  try {
-    await client.connect();
-    const db = client.db("bojonDB");
-    const collection = db.collection("users");
-
-    // Fetch all users, sorted by elo descending
-    const topUsers = await collection
-      .find({})
-      .sort({ elo: -1 })
-      .toArray();
-
-    // Keep first 5 characters of each username
-    const leaderboard = topUsers.map(user => ({
-      name: user.username ? user.username.slice(0, 5) : 'Guest',
-      elo: user.elo != null ? user.elo : 500
-    }));
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(leaderboard));
-  } catch (error) {
-    console.error("Leaderboard error:", error);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
-  }
-  return;
-}
-
-
         // POST /login
         if (req.method === "POST" && pathname === "/login") {
             let body = "";
@@ -355,6 +326,36 @@ async function handleRequest(req, res) {
             }
             return;
         }
+
+        // GET /leaderboard
+if (req.method === "GET" && pathname === "/leaderboard") {
+    try {
+        await client.connect();
+        const db = client.db("bojonDB");
+        const collection = db.collection("users");
+
+        // Fetch all users, sorted by elo descending, limit to top 10
+        const topUsers = await collection
+            .find({})
+            .sort({ elo: -1 })
+            .limit(10)
+            .toArray();
+
+        // Keep first 5 characters of each username
+        const leaderboard = topUsers.map(user => ({
+            name: user.username ? user.username.slice(0, 5) : 'Guest',
+            elo: user.elo != null ? user.elo : 500
+        }));
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(leaderboard));
+    } catch (error) {
+        console.error("Leaderboard error:", error);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
+    }
+    return;
+}
 
         // POST /upload-and-analyze
         if (req.method === "POST" && pathname === "/upload-and-analyze") {
