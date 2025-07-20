@@ -3,7 +3,7 @@ const { MongoClient } = require("mongodb");
 const url = require("url");
 const fs = require("fs");
 const path = require("path");
-//const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
 require("dotenv").config();
 const fetch = require("node-fetch");
@@ -327,36 +327,35 @@ async function handleRequest(req, res) {
             return;
         }
 
-// GET /leaderboard
-// GET /leaderboard
-        if (req.method === "GET" && pathname === "/leaderboard") {
-            try {
-                await client.connect();
-                const db = client.db("bojonDB");
-                const collection = db.collection("users");
+        // GET /leaderboard
+if (req.method === "GET" && pathname === "/leaderboard") {
+    try {
+        await client.connect();
+        const db = client.db("bojonDB");
+        const collection = db.collection("users");
 
-                const topUsers = await collection
-                    .find({})
-                    .sort({ elo: -1 })
-                    .limit(10)
-                    .toArray();
+        // Fetch all users, sorted by elo descending, limit to top 10
+        const topUsers = await collection
+            .find({})
+            .sort({ elo: -1 })
+            .limit(10)
+            .toArray();
 
-                const leaderboard = topUsers.map(user => ({
-                    name: user.username ? user.username.slice(0, 5) : 'Guest',
-                    elo: user.elo != null ? user.elo : 500
-                }));
+        // Keep first 5 characters of each username
+        const leaderboard = topUsers.map(user => ({
+            name: user.username ? user.username.slice(0, 5) : 'Guest',
+            elo: user.elo != null ? user.elo : 500
+        }));
 
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify(leaderboard));
-            } catch (error) {
-                console.error("Leaderboard error:", error);
-                res.writeHead(500, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
-            }
-            return;
-        }
-
-        // POST /upload-and-analyze (your existing code continues here)
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(leaderboard));
+    } catch (error) {
+        console.error("Leaderboard error:", error);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Failed to fetch leaderboard" }));
+    }
+    return;
+}
 
         // POST /upload-and-analyze
         if (req.method === "POST" && pathname === "/upload-and-analyze") {
@@ -480,15 +479,34 @@ if (req.method === "POST" && pathname === "/update-elo") {
 }
 
 
-                    // Respond with score if available, otherwise error
-                    if (!res.headersSent) {
-                        if (score !== null && score !== undefined) {
-                            res.writeHead(200, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
-                        } else {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "Failed to get interview score", details: scoreError ? scoreError.message : "Unknown error" }));
+                    // Find the match for this user
+                    let matchEntry = null;
+                    let opponent = null;
+                    for (const [key, match] of matches.entries()) {
+                        if (match.users && match.users.includes(safeUsername)) {
+                            matchEntry = match;
+                            opponent = match.users.find(u => u !== safeUsername);
+                            break;
                         }
+                    }
+                    // Store this user's score in the match entry
+                    if (matchEntry) {
+                        if (!matchEntry.scores) matchEntry.scores = {};
+                        matchEntry.scores[safeUsername] = score;
+                    }
+                    // Get opponent's score if available
+                    let opponentScore = null;
+                    if (matchEntry && opponent) {
+                        opponentScore = matchEntry.scores ? matchEntry.scores[opponent] : null;
+                    }
+                    // Respond with both scores
+                    if (!res.headersSent) {
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({
+                            message: "Video processed and analyzed",
+                            score,
+                            opponentScore
+                        }));
                     }
                 });
             });

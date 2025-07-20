@@ -151,6 +151,10 @@
             const result = await response.json();
             console.log('Upload and analyze result:', result);
             alert(`Analysis complete! Your score: ${result.score}`);
+            if (result.opponentScore !== null && result.opponentScore !== undefined) {
+                alert(`Opponent's score: ${result.opponentScore}`);
+            }
+            window.location.href = "result.html";
           } catch (err) {
             console.error('Failed to upload and analyze video:', err);
           }
