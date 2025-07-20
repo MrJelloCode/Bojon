@@ -208,6 +208,62 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
+const { execSync } = require("child_process");
+const os = require("os");
+const multer = require("multer");
+
+// Set up Multer for video uploads
+const upload = multer({ dest: os.tmpdir() });
+
+app.post("/upload-and-analyze", upload.single("video"), async (req, res) => {
+  const username = req.query.username || "anon";
+  if (!req.file) return res.status(400).json({ error: "No video uploaded" });
+
+  const tempPath = req.file.path;
+  const videoFilename = `user-${username}-${Date.now()}.webm`;
+  const finalPath = path.join(__dirname, "videos", videoFilename);
+
+  try {
+    // Ensure /videos exists
+    fs.mkdirSync(path.join(__dirname, "videos"), { recursive: true });
+    fs.renameSync(tempPath, finalPath);
+
+    const { getInterviewScore } = await import("./index.js");
+    const score = await getInterviewScore(videoFilename, username);
+
+    if (score == null) throw new Error("Score evaluation failed");
+
+    // Save score in match entry
+    for (const match of matches.values()) {
+      if (match.users.includes(username)) {
+        match.scores[username] = score;
+        break;
+      }
+    }
+
+    res.json({ message: "Analysis complete", score });
+  } catch (err) {
+    console.error("Upload/Analyze error:", err);
+    res.status(500).json({ error: "Failed to process video" });
+  }
+});
+
+app.post("/update-elo", async (req, res) => {
+  const { username, newElo } = req.body;
+  if (!username || typeof newElo !== "number") return res.status(400).json({ error: "Missing username or newElo" });
+
+  try {
+    await client.connect();
+    const db = client.db("bojonDB");
+    await db.collection("users").updateOne({ username }, { $set: { elo: newElo } });
+    res.json({ message: "ELO updated" });
+  } catch (err) {
+    console.error("ELO update failed:", err);
+    res.status(500).json({ error: "Failed to update ELO" });
+  }
+});
+
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Express server running on port ${PORT}`);

@@ -156,6 +156,14 @@
         document.getElementById("loading").style.display = "none";
         document.getElementById("results-container").style.display = "flex";
 
+        // Update Elo in DB
+        await fetch("/update-elo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, newElo })
+});
+
+
       } catch (err) {
         console.error("Error fetching results:", err);
         document.getElementById("loading").innerHTML = "<p style='color: red;'>Failed to load results. Try again later.</p>";
