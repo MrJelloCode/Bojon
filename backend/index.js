@@ -437,8 +437,50 @@ async function handleRequest(req, res) {
                     // Respond with score if available, otherwise error
                     if (!res.headersSent) {
                         if (score !== null && score !== undefined) {
+                            // Find the match for this user
+                            let matchEntry = null;
+                            let opponent = null;
+                            for (const [key, match] of matches.entries()) {
+                                if (match.users && match.users.includes(username)) {
+                                    matchEntry = match;
+                                    opponent = match.users.find(u => u !== username);
+                                    break;
+                                }
+                            }
+                            // Store this user's score in the match entry
+                            if (matchEntry) {
+                                if (!matchEntry.scores) matchEntry.scores = {};
+                                matchEntry.scores[username] = score;
+                            }
+                            // Get opponent's score if available
+                            let opponentScore = null;
+                            if (matchEntry && opponent) {
+                                opponentScore = matchEntry.scores ? matchEntry.scores[opponent] : null;
+                            }
+                            // Get user and opponent elo from DB
+                            let userElo = null;
+                            let opponentElo = null;
+                            try {
+                                await client.connect();
+                                const db = client.db("bojonDB");
+                                const collection = db.collection("users");
+                                const userDoc = await collection.findOne({ username });
+                                if (userDoc && userDoc.elo !== undefined) userElo = userDoc.elo;
+                                if (opponent) {
+                                    const oppDoc = await collection.findOne({ username: opponent });
+                                    if (oppDoc && oppDoc.elo !== undefined) opponentElo = oppDoc.elo;
+                                }
+                            } catch (e) {
+                                console.error("ELO fetch error:", e);
+                            }
                             res.writeHead(200, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
+                            res.end(JSON.stringify({
+                                message: "Video processed and analyzed",
+                                score,
+                                opponentScore,
+                                userElo,
+                                opponentElo
+                            }));
                         } else {
                             res.writeHead(500, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({ error: "Failed to get interview score", details: scoreError ? scoreError.message : "Unknown error" }));
