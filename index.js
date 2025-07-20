@@ -3,7 +3,6 @@ const { MongoClient } = require("mongodb");
 const url = require("url");
 const fs = require("fs");
 const path = require("path");
-const { v4: uuidv4 } = require('uuid');
 
 require("dotenv").config();
 const fetch = require("node-fetch");
@@ -11,8 +10,9 @@ const fetch = require("node-fetch");
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
-//
-// Sucessful Ribbon API call https://docs.ribbon.ai/reference/get_v1-ping-1
+
+
+let interviewStatus = "incomplete";
 async function createInterview(geminiQuestion) {
     const apiKey = process.env.RIBBON_API_KEY; // Make sure this is set in your env
 
@@ -89,8 +89,55 @@ async function createInterview(geminiQuestion) {
     return interviewResult;
 }
 
+//End Ribbon API call
 
-// testTwelveLabs();
+//Twelvelabs API 
+async function testTwelveLabs() {
+  try {
+    const { TwelveLabs } = await import("twelvelabs-js");
+
+    const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
+
+    const index = await client.index.create({
+      name: "Test Index",
+      models: [
+        { name: "marengo2.7", options: ["visual", "audio"] }
+      ]
+    });
+    console.log(`Created index: id=${index.id} name=${index.name}`);
+
+    const task = await client.task.create({
+      indexId: index.id,
+      url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4" // replace with your video URL
+    });
+    console.log(`Created task: id=${task.id}`);
+
+    await task.waitForDone(5000, (task) => {
+      console.log(`  Status=${task.status}`);
+    });
+
+    if (task.status !== "ready") {
+      throw new Error(`Indexing failed with status ${task.status}`);
+    }
+
+    console.log(`Upload complete. The unique identifier of your video is ${task.videoId}`);
+
+    const searchResults = await client.search.query({
+      indexId: index.id,
+      queryText: "YOUR_QUERY",
+      options: ["visual", "audio"]
+    });
+
+    for (const clip of searchResults.data) {
+      console.log(`video_id=${clip.videoId} score=${clip.score} start=${clip.start} end=${clip.end} confidence=${clip.confidence}`);
+    }
+
+  } catch (err) {
+    console.error("Twelvelabs error:", err);
+  }
+}
+
+testTwelveLabs();
 //Twelvelabs API  
 async function getGeminiResponse(prompt) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -185,8 +232,7 @@ async function handleRequest(req, res) {
             }
             return;
         }
-
-        if (req.method === "GET" && pathname === "/leaderboard") {
+if (req.method === "GET" && pathname === "/leaderboard") {
   try {
     await client.connect();
     const db = client.db("bojonDB");
@@ -257,8 +303,13 @@ async function handleRequest(req, res) {
                 res.end(JSON.stringify({ elo: elo }));
             });
             return;
+            
         }
 
+        // Find this section in your index.js file and add the leaderboard route
+// Add this RIGHT AFTER the /login route handler (around line 180-200)
+
+        // GET /leaderboard - ADD THIS NEW ROUTE
         if (req.method === "GET" && pathname === "/leaderboard") {
             try {
                 await client.connect();
@@ -293,7 +344,8 @@ async function handleRequest(req, res) {
             }
             return;
         }
-         if (req.method === "GET" && pathname === "/get-interview-link") {
+               // GET /get-interview-link
+        if (req.method === "GET" && pathname === "/get-interview-link") {
             // You may want to store interview_link somewhere accessible (e.g., in memory or DB)
             // For demo, let's call createInterview and return the link directly
             const interviewResult = await createInterview();
@@ -307,12 +359,12 @@ async function handleRequest(req, res) {
             return;
         }
 
-         if (req.method === "GET" && pathname === "/status") {
+            if (req.method === "GET" && pathname === "/status") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ status: interviewStatus }));
         return;
     }
-    
+
         // GET /auto-match?username=...
         if (req.method === "GET" && pathname.startsWith("/auto-match")) {
             const username = parsedUrl.query.username;
@@ -402,13 +454,13 @@ async function handleRequest(req, res) {
             matchEntry.pending = matchEntry.pending || [];
             matchEntry.pending.push(res);
 
-            const prompt = "Generate a very very short (solvable in a 10 second response) example technical interview question for a software engineering candidate. Make it a theory based question that can be answered only with words, no code. Only generate the question, and no other information about it.";
+            const prompt = "Generate a very very short (solvable in a 10 second response) example technical interview question for a software engineering candidate. Make it a theory based question that can be answered only with words, no code. Generate a highly varied, random question. Only generate the question, and no other information about it.";
             
             try {
                 const question = await getGeminiResponse(prompt);
                 matchEntry.question = question;
                 matchEntry.generating = false;
-
+                await createInterview(question);
                 // Respond to all waiting clients
                 for (const pendingRes of matchEntry.pending) {
                     pendingRes.writeHead(200, { "Content-Type": "application/json" });
@@ -423,107 +475,6 @@ async function handleRequest(req, res) {
                 }
                 matchEntry.pending = [];
             }
-            return;
-        }
-
-        // POST /upload-and-analyze
-        if (req.method === "POST" && pathname === "/upload-and-analyze") {
-            // Save incoming WebM to disk
-            const username = new URL(req.url, `http://${req.headers.host}`).searchParams.get("username") || "unknown";
-            const safeUsername = username.replace(/[^a-zA-Z0-9_-]/g, "_"); // sanitize to prevent directory traversal or illegal characters
-
-            const webmFilename = `video_${safeUsername}.webm`;
-            const mp4Filename = `video_${safeUsername}.mp4`;
-            const webmPath = path.join(__dirname, "video", webmFilename);
-            const mp4Path = path.join(__dirname, "video", mp4Filename);
-
-            const writeStream = fs.createWriteStream(webmPath);
-            req.pipe(writeStream);
-
-            req.on("end", async () => {
-                // Convert WebM to MP4 using ffmpeg
-                const { exec } = require("child_process");
-                exec(`ffmpeg -y -i "${webmPath}" -c:v libx264 -c:a aac -preset fast -pix_fmt yuv420p -movflags +faststart "${mp4Path}"`, async (err, stdout, stderr) => {
-                    if (err) {
-                        if (!res.headersSent) {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "ffmpeg conversion failed", details: stderr }));
-                        }
-                        return;
-                    }
-
-                    let score = null;
-                    let scoreError = null;
-                    try {
-                        const { TwelveLabs } = await import("twelvelabs-js");
-                        const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
-
-                        // Create index (or use an existing one)
-                        const index = await client.index.create({
-                            name: `index-${uuidv4()}`,
-                            models: [
-                                { name: "marengo2.7", options: ["visual", "audio"] }
-                            ]
-                        });
-
-                        // Upload the MP4 file
-                        const task = await client.task.create({
-                            indexId: index.id,
-                            file: fs.createReadStream(mp4Path)
-                        });
-
-                        await task.waitForDone(5000, (task) => {
-                            console.log(`  Status=${task.status}`);
-                        });
-
-                        if (task.status !== "ready") {
-                            throw new Error(`Indexing failed with status ${task.status}`);
-                        }
-
-                        // Example search prompt
-                        await client.search.query({
-                            indexId: index.id,
-                            queryText: "You are an interviewer and I need you to rate the following 20 second clip based off the clarity, posture and how well built out answer given by the user. You should only return to me a single integer between 0-100 based off the performance of the user.",
-                            options: ["visual", "audio"]
-                        });
-
-                        // Always try to get the score, even if searchResults is not used
-                        try {
-                            const { getInterviewScore } = await import('./twelvelabs.js');
-                            score = await getInterviewScore(mp4Path, safeUsername);
-                            console.log("Interview score:", score);
-                        } catch (apiErr) {
-                            scoreError = apiErr;
-                            console.error("getInterviewScore error:", apiErr);
-                        }
-                    } catch (apiErr) {
-                        if (!res.headersSent) {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "Twelve Labs API error", details: apiErr.message }));
-                        }
-                        return;
-                    }
-
-                    // Respond with score if available, otherwise error
-                    if (!res.headersSent) {
-                        if (score !== null && score !== undefined) {
-                            res.writeHead(200, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ message: "Video processed and analyzed", score }));
-                        } else {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "Failed to get interview score", details: scoreError ? scoreError.message : "Unknown error" }));
-                        }
-                    }
-                });
-            });
-
-            req.on("error", (err) => {
-                if (!res.headersSent) {
-                    res.writeHead(500, { "Content-Type": "application/json" });
-                    res.end(JSON.stringify({ error: err.message }));
-                }
-            });
-
             return;
         }
 
@@ -547,3 +498,5 @@ const server = http.createServer((req, res) => {
 server.listen(8080, () => {
     console.log("server running successfully");
 });
+
+
