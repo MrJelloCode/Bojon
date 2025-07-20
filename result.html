@@ -88,6 +88,7 @@
     <p>Loading results...</p>
   </div>
 
+  <h1 id="result-h1"></h1>
   <div id="result-header"></div>
 
   <div id="results-container">
@@ -109,50 +110,29 @@
   <button id="return-btn" onclick="window.location.href='lobby.html'">RETURN TO LOBBY</button>
 
   <script>
-    window.onload = async () => {
-      try {
-        const res = await fetch('/get-results');
-        const data = await res.json();
-
-        console.log("Received result:", data);
-
-        const { yourScore, opponentScore, yourElo, opponentElo } = data;
-
-        // Win/loss/draw logic
-        let resultText = '';
-        let actual = 0;
-        if (yourScore > opponentScore) {
-          resultText = "🎉 You Win!";
-          actual = 1;
-        } else if (yourScore < opponentScore) {
-          resultText = "😞 You Lose!";
-          actual = 0;
+    window.onload = () => {
+      const h1 = document.getElementById('result-h1');
+      function checkResult() {
+        const result = JSON.parse(localStorage.getItem('bojonResult') || '{}');
+        if (result && (result.score !== undefined || result.error)) {
+          // Show result
+          if (result.score !== undefined) {
+            let msg = `Your Score: ${result.score}`;
+            if (result.opponent !== undefined && result.opponentScore !== undefined) {
+              msg += ` | Opponent (${result.opponent}): ${result.opponentScore !== null ? result.opponentScore : 'Pending...'}`;
+            }
+            h1.textContent = msg;
+          } else if (result.error) {
+            h1.textContent = result.error;
+          }
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("results-container").style.display = "flex";
         } else {
-          resultText = "🤝 It's a Draw!";
-          actual = 0.5;
+          // Keep waiting
+          setTimeout(checkResult, 1000);
         }
-
-        // ELO calculation
-        const K = 32;
-        const expected = 1 / (1 + Math.pow(10, (opponentElo - yourElo) / 400));
-        const newElo = Math.round(yourElo + K * (actual - expected));
-        const eloChange = newElo - yourElo;
-
-        // Inject result data
-        document.getElementById("result-header").textContent = resultText;
-        document.getElementById("your-score").textContent = `Your Score: ${yourScore}`;
-        document.getElementById("opponent-score").textContent = `Opponent's Score: ${opponentScore}`;
-        document.getElementById("elo-change").textContent = `New Elo: ${newElo} (${eloChange >= 0 ? '+' : ''}${eloChange})`;
-        document.getElementById("total-percent").textContent = yourScore + "%";
-
-        // Fade-in reveal
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("results-container").style.display = "flex";
-
-      } catch (err) {
-        console.error("Error fetching results:", err);
-        document.getElementById("loading").innerHTML = "<p style='color: red;'>Failed to load results. Try again later.</p>";
       }
+      checkResult();
     };
   </script>
 </body>
