@@ -111,7 +111,7 @@
   <script>
     window.onload = async () => {
       try {
-        const res = await fetch('/get-results');
+        const res = await fetch('/upload-and-analyze');
         const data = await res.json();
 
         console.log("Received result:", data);
