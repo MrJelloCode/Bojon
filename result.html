@@ -109,7 +109,7 @@
   <button id="return-btn" onclick="window.location.href='lobby.html'">RETURN TO LOBBY</button>
 
   <script>
-    window.onload = async () => {
+    window.onload = async function () {
       try {
         const username = localStorage.getItem("username");
         if (!username) throw new Error("Username not found");

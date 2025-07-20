@@ -131,25 +131,39 @@
   <div class="footer">Built for Hack The Six • Powered by Bojon</div>
 
   <script>
-    // Auth0 config
     let auth0 = null;
     const config = {
       domain: "dev-gskzwka7s4gt7y05.us.auth0.com",
       client_id: "qp9qJup1jy3wdUZoVg39v6awIOcy0Okl",
-      redirect_uri: "https://humble-marmoset-natural.ngrok-free.app/lobby.html"
+      redirect_uri: window.location.origin + "/lobby.html"
     };
 
     const configureAuth0 = async () => {
       auth0 = await createAuth0Client(config);
+
+      // Handle redirect after login
+      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
+        await auth0.handleRedirectCallback();
+        window.history.replaceState({}, document.title, "/lobby.html");
+      }
+
+      const isAuthenticated = await auth0.isAuthenticated();
+      if (isAuthenticated) {
+        const user = await auth0.getUser();
+        const username = user.nickname || user.name || user.email || user.sub;
+        localStorage.setItem("username", username);  // ✅ Save to localStorage
+        window.location.href = "/lobby.html";
+      }
     };
 
     window.onload = async () => {
       await configureAuth0();
+
       document.getElementById("loginBtn").addEventListener("click", () => {
         auth0.loginWithRedirect();
       });
 
-      const icons = ['📄','💼'];
+      const icons = ['📄', '💼'];
       const grid = document.getElementById("tileGrid");
 
       for (let i = 0; i < 40; i++) {
