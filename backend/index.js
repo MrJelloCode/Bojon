@@ -1,3 +1,5 @@
+let interviewStatus = "pending"; // for polling to work
+
 const http = require("http");
 const { MongoClient } = require("mongodb");
 const url = require("url");
@@ -146,7 +148,7 @@ async function handleRequest(req, res) {
         }
 
         // GET /get-elo?username=...
-        if (req.method === "GET" && pathname === "/get-elo") {
+        if (req.method === "GET" && pathname.startsWith("/get-elo")) {
             await client.connect();
             const db = client.db("bojonDB");
             const collection = db.collection("users"); // use your actual collection name
@@ -290,7 +292,7 @@ async function handleRequest(req, res) {
         }
 
         // GET /get-interview-question?username=...
-        if (req.method === "GET" && pathname === "/get-interview-question") {
+        if (req.method === "GET" && pathname.startsWith("/get-interview-question")) {
             const username = parsedUrl.query.username;
             if (!username) {
                 res.writeHead(403, { "Content-Type": "application/json" });
@@ -383,7 +385,7 @@ async function handleRequest(req, res) {
                     }
 
                     let score = null;
-                    let scoreError = null;
+                    let scoreError = null;a
                     try {
                         const { TwelveLabs } = await import("twelvelabs-js");
                         const client = new TwelveLabs({ apiKey: process.env.TWELVELABS_API_KEY });
@@ -473,6 +475,10 @@ async function handleRequest(req, res) {
                             } catch (e) {
                                 console.error("ELO fetch error:", e);
                             }
+                            if (!matchEntry.eloCache) matchEntry.eloCache = {};
+                            matchEntry.eloCache[username] = userElo;
+                            if (opponent) matchEntry.eloCache[opponent] = opponentElo;
+
                             res.writeHead(200, { "Content-Type": "application/json" });
                             res.end(JSON.stringify({
                                 message: "Video processed and analyzed",
@@ -498,6 +504,44 @@ async function handleRequest(req, res) {
 
             return;
         }
+
+        if (req.method === "GET" && pathname === "/get-results") {
+            const username = parsedUrl.query.username;
+            if (!username) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Missing username" }));
+                return;
+            }
+
+            let matchEntry = null;
+            let opponent = null;
+
+            for (const [key, match] of matches.entries()) {
+                if (match.users?.includes(username)) {
+                    matchEntry = match;
+                    opponent = match.users.find(u => u !== username);
+                    break;
+                }
+            }
+
+            if (!matchEntry || !matchEntry.scores) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "No match or scores found" }));
+                return;
+            }
+
+            const result = {
+                yourScore: matchEntry.scores[username] ?? null,
+                opponentScore: matchEntry.scores[opponent] ?? null,
+                yourElo: matchEntry.eloCache?.[username] ?? null,
+                opponentElo: matchEntry.eloCache?.[opponent] ?? null,
+            };
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(result));
+            return;
+            }
+
 
         // Default response for other routes
         res.writeHead(404, { "Content-Type": "application/json" });
