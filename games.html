@@ -150,6 +150,7 @@
             });
             const result = await response.json();
             console.log('Upload and analyze result:', result);
+            alert(`Analysis complete! Your score: ${result.score}`);
           } catch (err) {
             console.error('Failed to upload and analyze video:', err);
           }
