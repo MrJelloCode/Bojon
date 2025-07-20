@@ -405,6 +405,50 @@ async function handleRequest(req, res) {
                         return;
                     }
 
+                    // POST /update-elo
+if (req.method === "POST" && pathname === "/update-elo") {
+    let body = "";
+    req.on("data", chunk => { body += chunk; });
+    req.on("end", async () => {
+        try {
+            const { winner, loser } = JSON.parse(body);
+            if (!winner || !loser) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Missing winner or loser username" }));
+                return;
+            }
+
+            await client.connect();
+            const db = client.db("bojonDB");
+            const collection = db.collection("users");
+
+            // Get both players' current ELOs
+            const [winnerDoc, loserDoc] = await Promise.all([
+                collection.findOne({ username: winner }),
+                collection.findOne({ username: loser })
+            ]);
+
+            const winnerElo = adjustElo(winnerDoc?.elo || 500, true);
+            const loserElo = adjustElo(loserDoc?.elo || 500, false);
+
+            // Update both in the DB
+            await Promise.all([
+                collection.updateOne({ username: winner }, { $set: { elo: winnerElo } }),
+                collection.updateOne({ username: loser }, { $set: { elo: loserElo } })
+            ]);
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ message: "ELO updated", winnerElo, loserElo }));
+        } catch (err) {
+            console.error("ELO update error:", err);
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Failed to update ELO" }));
+        }
+    });
+    return;
+}
+
+
                     // Respond with score if available, otherwise error
                     if (!res.headersSent) {
                         if (score !== null && score !== undefined) {
